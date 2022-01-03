@@ -1,0 +1,705 @@
+---
+title: "2018.01_AM_HFO_1wo_surv_7d_v2"
+author: "Mikaela Nordborg"
+date: "24/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+#select usingcmdstanr instead of rtools
+require(cmdstanr)
+set_cmdstan_path("C:/cmdstan")
+options(brms.backend = "cmdstanr")
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+# Background
+
+Partial survival of 1 week old Acropora millepora corals exposed to the water accommodated fractions (WAF) of heavy fuel oil in the presence or absence of ultraviolet radiation (UV) for 7 days. 
+
+Column headings used:
+
+  date                        = date of assessment/imaging
+  exp_time                    = exposure time (days)
+  light                       = light treatment corals were exposed under; visible light in the absence (PAR) or presence (UVR) of UV radiation
+  nom.x                       = nominal treatment concentration (% WAF)
+  raw.x                       = time-averaged, measured treatment concentration (ug TAH/L)
+  rep                         = replicate chamber.ID for the treatment combination (1-7)
+  chamber.ID                  = exposure chamber used (1-79)
+  tile.ID                     = tile number (1-249)
+  org.ID                      = identifier for individual corals within a replicate
+  area_image_ID               = file identifier for the image file used to obtain live tissue area measurements
+  live_area                   = total area of live tissue measured from scaled image files (mm^2)
+  area_rel_to_t0              = change in live tissue area at assessment time relative to the area at start of exposure
+  surv                        = proportion of live tissue area at start of exposure that remained alive at assessment (0-1)
+  comments                    = comments relating to individual data points
+  use_in_model                = specifies which data points should be included in statistical analysis
+  reason_for_exclusion        = specifies the reason for exclusion form statistical analysis (f applicable)
+  use_in_plot                 = specifies whether data should be used in results graphics or not
+  reason_for_exclusion_plot   = specifies why data point should not be included in result graphics
+
+
+
+# Import and prepare data for analysis
+```{r}
+#all models  - no x transformation
+rec_surv_data <- readr::read_csv("csv files/2018.01_AM_HFO_1wo_surv_7d.csv") 
+
+#Check the range of concentration (x) values for the data
+unique(rec_surv_data$raw.x)
+```
+
+## Data wrangling/clean-up
+```{r}
+rec_surv_data <- readr::read_csv("csv files/2018.01_AM_HFO_1wo_surv_7d.csv") %>% 
+  data.frame() %>% dplyr::mutate(light=as.factor(as.character(light)),
+                                 exp_time=as.factor(as.character(exp_time)),
+                                 nom.x=as.character(nom.x),
+                                 raw.x=as.numeric(as.character(raw.x)),
+                                 raw.x=ifelse(raw.x==0, 0.1, raw.x), # deal with 0 concentration values
+                                 rep=as.factor(as.numeric(rep)),
+                                 chamber.ID=as.factor(as.numeric(chamber.ID)),
+                                 tile.ID=as.factor(as.character(tile.ID)),
+                                 org.ID=as.factor(as.numeric(org.ID)),
+                                 live_area=as.numeric(as.character(live_area)),
+                                 area_rel_to_t0=as.numeric(as.character(area_rel_to_t0)),
+                                 surv=as.numeric(surv),
+                                 log.x=log10(raw.x), # create log values (doesn't really matter if it's log or log10() unless there's a difference in the scaling of the x-data)
+                                 suc=as.integer(surv*5),
+                                 tot=as.integer(5)) #to account for the 5% variability in repeat area measurements
+str(rec_surv_data)
+head(rec_surv_data)
+tail(rec_surv_data)
+```
+
+
+## Filter data
+```{r}
+#filter for exposure time
+surv_1wo_7d_data <-rec_surv_data %>% 
+  dplyr::filter(exp_time=="7 days") 
+
+#filter for whether replicates should be included in model fitting
+surv_1wo_7d_data <- surv_1wo_7d_data %>% 
+  dplyr::filter(use_in_model=="Yes")
+
+
+
+#filter for light treatment
+surv_1wo_7d_PAR_data <- surv_1wo_7d_data %>% 
+  dplyr::filter(light=="PAR")
+  
+surv_1wo_7d_UV_data <- surv_1wo_7d_data %>% 
+  dplyr::filter(light=="UVR")
+
+#check that filtering worked
+View(surv_1wo_7d_PAR_data)
+View(surv_1wo_7d_UV_data)
+```
+
+
+### Save filtered data as an RData object
+```{r}
+save(surv_1wo_7d_PAR_data, surv_1wo_7d_UV_data, file = "2018.01_AM_HFO_1wo_surv_7d_data.RData")
+```
+
+
+
+# PAR/-UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.01_AM_HFO_1wo_surv_7d_data.RData")
+
+unique(surv_1wo_7d_PAR_data$raw.x)
+par(mfrow=c(2,1))
+hist(surv_1wo_7d_PAR_data$raw.x)
+hist(surv_1wo_7d_PAR_data$surv)
+par(mfrow=c(1,1))
+plot(surv_1wo_7d_PAR_data$log.x, surv_1wo_7d_PAR_data$surv) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+## Fit a model-averaged NEC-model (MANEC) using the betabinomial distribution
+```{r, eval=FALSE}
+load(file = "2018.01_AM_HFO_1wo_surv_7d_data.RData")
+
+
+out_surv_1wo_7d_PAR_all <- bayesnec::bnec(suc|trials(tot) ~ crf(log.x, model = "decline"),
+                                     data = surv_1wo_7d_PAR_data, family = beta_binomial2)
+save(out_surv_1wo_7d_PAR_all, file = "2018.01_AM_HFO_1wo_surv_7d_PAR_modfit_all.RData")
+
+beepr::beep("mario")
+```
+
+
+
+## Check model fit
+Check if any candidate models failed the rHat test
+```{r}
+rhat(out_surv_1wo_7d_PAR_all, rhat_cutoff = 1.03)
+```
+
+
+
+Check model summary
+```{r}
+out_surv_1wo_7d_PAR_all$mod_stats
+summary(out_surv_1wo_7d_PAR_all)
+```
+
+
+Check the overall MANEC fit
+```{r}
+plot(out_surv_1wo_7d_PAR_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+Check chain mixing, priors and the fit of the individual candidate models
+```{r}
+check_chains(out_surv_1wo_7d_PAR_all, filename = "2018.01_AM_HFO_1wo_surv_7d_PAR_modfit_chains")
+
+check_priors(out_surv_1wo_7d_PAR_all, filename = "2018.01_AM_HFO_1wo_surv_7d_PAR_modfit_priors")
+
+pdf("2018.01_AM_HFO_1wo_surv_7d_PAR_modfit_fitplots.pdf")
+plot(out_surv_1wo_7d_PAR_all, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+  *Any evidence of poor chain mixing or convergence issues?*
+      - model           include/unclear/exclude           Reason for exclusion
+      
+      - nec4param                 include                 Minor evidence of poor chain mixing
+      - ecx4param                 include                 Minor-some evidence of poor chain mixing
+      - ecxwb1                    exclude                 Evidence of poor chain mixing
+      - ecxwb2                    include                 Minor evidence of poor chain mixing
+      - ecxwb1p3                  exclude                 Some evidence of poor chain mixing
+      - ecxll5                    exclude                 Some evidence of poor chain mixing
+      - ecxll4                    exclude                 Some evidence of poor chain mixing
+      
+  *Any indications that the prior distributions were influencing the posterior distributions more than the observed data?*
+      - Potentially ecxll5 (f)
+
+  *Should any of the candidate models be excluded based on the fit relative to the raw data?*
+      - ecxexp
+      
+      
+
+Drop inappropriate models and models with non-convergence or very poor chain mixing (if required)
+```{r}
+out_surv_1wo_7d_PAR_mod <- amend(out_surv_1wo_7d_PAR_all, drop = c("ecxwb1", "ecxwb1p3", "ecxll5", "ecxll4", "ecxexp"))
+
+save(out_surv_1wo_7d_PAR_all, out_surv_1wo_7d_PAR_mod, file = "2018.01_AM_HFO_1wo_surv_7d_PAR_modfit_all.RData")
+```
+
+
+Compare the MANEC containing all OD candidate models to the amended MANEC
+```{r}
+plot(out_surv_1wo_7d_PAR_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+plot(out_surv_1wo_7d_PAR_mod, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+```
+
+
+
+## Select final MANEC to use
+
+Rename model output for selected MANEC
+```{r}
+out_surv_1wo_7d_PAR <- out_surv_1wo_7d_PAR_mod
+```
+
+
+Extract the NEC-model subset for use in extraction of NEC and comparisons of posterior distributions
+```{r}
+out_surv_1wo_7d_PAR_NEC <- pull_out(out_surv_1wo_7d_PAR, model = c("nec"))
+```
+
+
+```{r}
+plot(out_surv_1wo_7d_PAR_NEC, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+Save the output for the selected models
+```{r}
+save(out_surv_1wo_7d_PAR, out_surv_1wo_7d_PAR_NEC, file = "2018.01_AM_HFO_1wo_surv_7d_PAR_modfits_final.RData")
+load("2018.01_AM_HFO_1wo_surv_7d_PAR_modfits_final.RData")
+```
+
+
+
+## Extract results
+
+Extract NEC, EC10 and EC50 (with 95% credible intervals) from posterior and backtransform if required
+```{r}
+NEC_surv_1wo_7d_PAR <- out_surv_1wo_7d_PAR_NEC$w_nec
+NEC_surv_1wo_7d_PAR <- 10^NEC_surv_1wo_7d_PAR #if using log10(raw.x)
+#NEC_surv_1wo_7d_PAR <- exp(NEC_surv_1wo_7d_PAR) #if using log(raw.x))
+NEC_surv_1wo_7d_PAR
+```
+
+```{r}
+EC10_surv_1wo_7d_PAR <- ecx(out_surv_1wo_7d_PAR, ecx_val = 10, type = "absolute")
+EC10_surv_1wo_7d_PAR <- 10^EC10_surv_1wo_7d_PAR #if using log10(raw.x)
+#EC10_surv_1wo_7d_PAR <- exp(EC10_surv_1wo_7d_PAR) #if using log(raw.x))
+EC10_surv_1wo_7d_PAR
+```
+
+```{r}
+EC50_surv_1wo_7d_PAR <- ecx(out_surv_1wo_7d_PAR, ecx_val = 50, type = "absolute")
+EC50_surv_1wo_7d_PAR <- 10^EC50_surv_1wo_7d_PAR #if using log10(raw.x)
+#EC50_surv_1wo_7d_PAR <- exp(EC50_surv_1wo_7d_PAR) #if using log(raw.x))
+EC50_surv_1wo_7d_PAR
+```
+
+
+# UV/+UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.01_AM_HFO_1wo_surv_7d_data.RData")
+
+unique(surv_1wo_7d_UV_data$raw.x)
+par(mfrow=c(2,1))
+hist(surv_1wo_7d_UV_data$raw.x)
+hist(surv_1wo_7d_UV_data$surv)
+par(mfrow=c(1,1))
+plot(surv_1wo_7d_UV_data$log.x, surv_1wo_7d_UV_data$surv) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+      
+## Fit a model-averaged NEC-model (MANEC) using the betabinomial distribution
+```{r, eval=FALSE}
+load(file = "2018.01_AM_HFO_1wo_surv_7d_data.RData")
+
+out_surv_1wo_7d_UV_all <- bayesnec::bnec(suc|trials(tot) ~ crf(log.x, model = "decline"),
+                                     data = surv_1wo_7d_UV_data, family = beta_binomial2)
+save(out_surv_1wo_7d_UV_all, file = "2018.01_AM_HFO_1wo_surv_7d_UV_modfit_all.RData")
+
+beepr::beep("mario")
+```
+
+
+## Check model fit
+Check if any candidate models failed the rHat test
+```{r}
+rhat(out_surv_1wo_7d_UV_all, rhat_cutoff = 1.03)
+```
+
+
+Check model summary
+```{r}
+out_surv_1wo_7d_UV_all$mod_stats
+summary(out_surv_1wo_7d_UV_all)
+```
+
+
+Check the overall MANEC fit
+```{r}
+plot(out_surv_1wo_7d_UV_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+Check chain mixing, priors and the fit of the individual candidate models
+```{r}
+check_chains(out_surv_1wo_7d_UV_all, filename = "2018.01_AM_HFO_1wo_surv_7d_UV_modfit_chains")
+
+check_priors(out_surv_1wo_7d_UV_all, filename = "2018.01_AM_HFO_1wo_surv_7d_UV_modfit_priors")
+
+pdf("2018.01_AM_HFO_1wo_surv_7d_UV_modfit_fitplots.pdf")
+plot(out_surv_1wo_7d_UV_all, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+  *Any evidence of poor chain mixing or convergence issues?*
+      - model           include/unclear/exclude           Reason for exclusion
+      
+      - nec4param                 exclude                 Evidence of poor chain mixing
+      - ecx4param                 exclude                 Evidence of poor chain mixing
+      - ecxwb1                    include                 Minor-some evidence of poor chain mixing
+      - ecxwb2                    exclude                 Evidence of poor chain mixing
+      - ecxll5                    exclude                 Evidence of poor chain mixing
+      - ecxll4                    unclear                 Some evidence of poor chain mixing
+      
+  *Any indications that the prior distributions were influencing the posterior distributions more than the observed data?*
+      - No
+
+  *Should any of the candidate models be excluded based on the fit relative to the raw data?*
+      - ecxexp
+
+Drop inappropriate models and models with non-convergence or very poor chain mixing (if required)
+```{r}
+out_surv_1wo_7d_UV_mod <- amend(out_surv_1wo_7d_UV_all, drop = c("nec4param", "ecx4param", "ecxwb2", "ecxll5", "ecxexp"))
+
+save(out_surv_1wo_7d_UV_all, out_surv_1wo_7d_UV_mod, file = "2018.01_AM_HFO_1wo_surv_7d_UV_modfit_all.RData")
+```
+
+
+Compare the MANEC containing all candidate models to the amended MANEC
+```{r}
+plot(out_surv_1wo_7d_UV_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+plot(out_surv_1wo_7d_UV_mod, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+
+## Select final MANEC to use
+
+Rename model output for selected MANEC
+```{r}
+out_surv_1wo_7d_UV <- out_surv_1wo_7d_UV_mod
+```
+
+
+Extract the NEC-model subset for use in extraction of NEC and comparisons of posterior distributions
+```{r}
+out_surv_1wo_7d_UV_NEC <- pull_out(out_surv_1wo_7d_UV, model = c("nec"))
+```
+
+
+
+```{r}
+plot(out_surv_1wo_7d_UV_NEC, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+```
+
+
+Save the output for the selected models
+```{r}
+save(out_surv_1wo_7d_UV, out_surv_1wo_7d_UV_NEC, file = "2018.01_AM_HFO_1wo_surv_7d_UV_modfits_final.RData")
+load("2018.01_AM_HFO_1wo_surv_7d_UV_modfits_final.RData")
+```
+
+
+
+## Extract results
+
+Extract NEC, EC10 and EC50 (with 95% credible intervals) from posterior and backtransform if required
+```{r}
+NEC_surv_1wo_7d_UV <- out_surv_1wo_7d_UV_NEC$nec
+NEC_surv_1wo_7d_UV <- 10^NEC_surv_1wo_7d_UV #if using log10(raw.x)
+#NEC_surv_1wo_7d_UV <- exp(NEC_surv_1wo_7d_UV) #if using log(raw.x))
+NEC_surv_1wo_7d_UV
+```
+
+```{r}
+EC10_surv_1wo_7d_UV <- ecx(out_surv_1wo_7d_UV, ecx_val = 10, type = "absolute")
+EC10_surv_1wo_7d_UV <- 10^EC10_surv_1wo_7d_UV #if using log10(raw.x)
+#EC10_surv_1wo_7d_UV <- exp(EC10_surv_1wo_7d_UV) #if using log(raw.x))
+EC10_surv_1wo_7d_UV
+```
+
+```{r}
+EC50_surv_1wo_7d_UV <- ecx(out_surv_1wo_7d_UV, ecx_val = 50, type = "absolute")
+EC50_surv_1wo_7d_UV <- 10^EC50_surv_1wo_7d_UV #if using log10(raw.x)
+#EC50_surv_1wo_7d_UV <- exp(EC50_surv_1wo_7d_UV) #if using log(raw.x))
+EC50_surv_1wo_7d_UV
+```
+
+
+
+# Comparison of light treatments
+## Predict response values
+
+Extract complete posteriors for the fitted values using compare_posterior-function
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_PAR_modfits_final.RData")
+load("2018.01_AM_HFO_1wo_surv_7d_UV_modfits_final.RData")
+
+pred_surv_1wo_7d <- compare_posterior(x=list("PAR" = out_surv_1wo_7d_PAR, "UVR" = out_surv_1wo_7d_UV), comparison = "fitted", precision = 50)
+
+pred_surv_1wo_7d_PAR <- pred_surv_1wo_7d$posterior_data %>% 
+  dplyr::filter(model=="PAR")
+
+pred_surv_1wo_7d_UV <- pred_surv_1wo_7d$posterior_data %>% 
+  dplyr::filter(model=="UVR")
+
+
+
+pred_surv_1wo_7d_NEC <- compare_posterior(list("PAR" = out_surv_1wo_7d_PAR_NEC, "UVR" = out_surv_1wo_7d_UV_NEC), comparison = "fitted", precision = 50)
+
+pred_surv_1wo_7d_PAR_NEC <- pred_surv_1wo_7d_NEC$posterior_data %>% 
+  dplyr::filter(model=="PAR")
+pred_surv_1wo_7d_UV_NEC <- pred_surv_1wo_7d_NEC$posterior_data %>% 
+ dplyr::filter(model=="UVR")
+
+
+save(pred_surv_1wo_7d, pred_surv_1wo_7d_PAR, pred_surv_1wo_7d_UV, pred_surv_1wo_7d_PAR_NEC, pred_surv_1wo_7d_UV_NEC, file = "2018.01_AM_HFO_1wo_surv_7d_predvals.RData") # pred_surv_1wo_7d_NEC, pred_surv_1wo_7d_PAR_NEC, pred_surv_1wo_7d_UV_NEC <- add these back in once UV-section is working
+
+load("2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+str(pred_surv_1wo_7d_PAR)
+str(pred_surv_1wo_7d_UV)
+```
+
+### Check the median response for controls and unaffected concentration treatments
+```{r}
+head(pred_surv_1wo_7d_PAR)
+head(pred_surv_1wo_7d_UV)
+```
+
+
+
+## Determine the highest probability that there is a difference
+The highest probability that the two light treatments are different (at any tested x-value) is:
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+diff_surv_1wo_7d <- max(pred_surv_1wo_7d$prob_diff$prob)
+diff_surv_1wo_7d
+```
+
+
+
+## EC50
+
+Perform comparison of posterior distributions for partial survival LC50
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_PAR_modfits_final.RData")
+load("2018.01_AM_HFO_1wo_surv_7d_UV_modfits_final.RData")
+
+comp_surv_1wo_7d_EC50 <- compare_posterior(x=list("PAR" = out_surv_1wo_7d_PAR, "UVR" = out_surv_1wo_7d_UV), comparison = "ecx", ecx_val = 50)
+save(comp_surv_1wo_7d_EC50, file = "2018.01_AM_HFO_1wo_surv_7d_posterior_comp_EC50.RData")
+comp_surv_1wo_7d_EC50$prob_diff
+```
+Table shows the % likelihood that the point estimate calculated (NEC, EC/LC10 or EC/LC50) for model A (in top row) is smaller than the point estimate calculated for model B, C, etc (in left hand column). 
+
+*Is EC50 +UVR lower than the EC50 -UVR?*
+    - No, only a likelihood of 33.83%.
+
+
+
+# Graphical presentation of results
+## Concentration-response relationship and raw data
+### Complete subset-MANEC plot
+
+
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_data.RData")
+load("2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_surv_1wo_7d_PAR$x, ymin=pred_surv_1wo_7d_PAR$Q2.5, ymax=pred_surv_1wo_7d_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_surv_1wo_7d_UV$x, ymin=pred_surv_1wo_7d_UV$Q2.5, ymax=pred_surv_1wo_7d_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_surv_1wo_7d_PAR$x, y=pred_surv_1wo_7d_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_surv_1wo_7d_UV$x, y=pred_surv_1wo_7d_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_1wo_7d_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_1wo_7d_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_surv_1wo_7d_all <- p.all
+plot_surv_1wo_7d_all
+```
+
+
+### NEC subset-MANEC plot
+
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_data.RData")
+load("2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_1wo_7d_PAR_NEC$x, ymin=pred_surv_1wo_7d_PAR_NEC$Q2.5, ymax=pred_surv_1wo_7d_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_1wo_7d_UV_NEC$x, ymin=pred_surv_1wo_7d_UV_NEC$Q2.5, ymax=pred_surv_1wo_7d_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_1wo_7d_PAR_NEC$x, y=pred_surv_1wo_7d_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_1wo_7d_UV_NEC$x, y=pred_surv_1wo_7d_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_1wo_7d_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_1wo_7d_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_surv_1wo_7d_NEC <- p_NEC
+plot_surv_1wo_7d_NEC
+```
+
+
+## Comparison of light treatments across concentrations
+
+
+### Probability of a difference between light treatments plot
+Plot the probability of a difference between the UV and PAR light treatments across the treatment concentrations tested
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+pred_surv_1wo_7d$prob_diff$inv.x <- 10^pred_surv_1wo_7d$prob_diff$x
+
+p.comp.prob= ggplot(pred_surv_1wo_7d$prob_diff) +
+                geom_line(aes(x=inv.x, prob, color="grey"), size=0.8)
+
+p.comp.prob= p.comp.prob + scale_color_manual(values = c("grey")) +
+                theme_light() +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80")) +
+                theme(legend.position="none") 
+    
+p.comp.prob= p.comp.prob + scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) +
+                scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 1000)) +
+                labs(x=expression(Treatment~concentration~(μg~TAH~"L"^{-1})),
+                      y=expression(Probability~that~UVR~affected~toxicity~("%")),
+                      subtitle="a)")
+
+plot_surv_1wo_7d_diff.prob <- p.comp.prob
+plot_surv_1wo_7d_diff.prob
+```
+
+    If solid line (probability) is higher than 95%/0.95 = UVR significantly increased toxicity at that treatment concentration
+
+### Posterior differences plot
+Plot the posterior difference estimate for the UV and PAR light treatments across the treatment concentrations tested
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+pred_surv_1wo_7d$diff_data$inv.x <- 10^pred_surv_1wo_7d$diff_data$x
+
+p.comp.diff = ggplot(pred_surv_1wo_7d$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Treatment~concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="a)")
+
+plot_surv_1wo_7d_diff.est <- p.comp.diff
+plot_surv_1wo_7d_diff.est
+```
+
+    If credible intervals (shaded grey area) includes 0 (dotted blue line) there is no significant difference between the two models at that treatment concentration.
+
+
+## EC50 comparison
+
+Create a custom results plot of the EC50 comparison
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_surv_1wo_7d_EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.1), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 100%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_surv_1wo_7d_EC50 <- p.comp.EC50
+comp.plot_surv_1wo_7d_EC50
+```
+
+
+Create a custom plot of the EC50 comparisons differences posterior density
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_posterior_comp_EC50.RData")
+
+p.comp.EC50.diff = ggplot(comp_surv_1wo_7d_EC50$diff_data, aes(x=diff)) +
+  geom_density(aes(x=diff, fill = 'grey'), alpha=0.4) + 
+  geom_vline(xintercept = 0, color = "red", lty = 2) + 
+  theme_light()
+
+p.comp.EC50.diff = p.comp.EC50.diff + scale_fill_manual( values = c("grey", "grey")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue4", "grey","grey", "grey","grey")) + 
+  theme(legend.position="none")
+p.comp.EC50.diff = p.comp.EC50.diff + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50.diff = p.comp.EC50.diff + scale_y_continuous(name = "Differences posterior density") 
+p.comp.EC50.diff = p.comp.EC50.diff + scale_x_continuous(name = "Standardized effect size") 
+
+
+#Rename & show plot
+comp.plot_surv_1wo_7d_EC50.diff <- p.comp.EC50.diff
+comp.plot_surv_1wo_7d_EC50.diff
+```
+
+
+
+
+# Create layouts and export (if required)
+
+Create layout to view result plots side-by-side
+```{r}
+layout_HFO_2mo_surv_7d <- ggarrange(plot_surv_1wo_7d_all, comp.plot_surv_1wo_7d_EC50, plot_surv_1wo_7d_diff.est, plot_surv_1wo_7d_NEC,
+          ncol = 3, nrow = 2,
+          widths = c(0.5, 0.5))
+layout_HFO_2mo_surv_7d
+```

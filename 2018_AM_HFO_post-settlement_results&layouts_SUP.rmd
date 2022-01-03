@@ -1,0 +1,584 @@
+---
+title: "2018.03_AM_HFO_post-settlement_results&layouts_v1"
+author: "Mikaela Nordborg"
+date: "23/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #install from CRAN in the first instance, for intermediate updates use devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+library(ggdist)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+# Layouts
+
+## 1 week old (which go with main text figs)
+```{r}
+layout.Ch2.SUP.1wo.mainfigs <- ggarrange(plot_surv_1wo_7d_NEC, plot_surv_1wo_7d_diff.est,
+          ncol = 2, nrow = 1,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.1wo.mainfigs
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_1wo_mainfigs.pdf", width = 6.69, height = 1.95) #height and width in inches
+layout.Ch2.SUP.1wo.mainfigs
+dev.off()
+```
+
+
+
+## 2 month old (which go with main text figs)
+### 14d post-exposure
+```{r}
+layout.Ch2.SUP.2mo.mainfigs.diff <- ggarrange(plot_surv_2mo_14dNEC, plot_surv_2mo_14d_diff.est, plot_growth_2mo_14d_NEC, plot_growth_2mo_14d_diff.est,
+          ncol = 2, nrow = 2,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.2mo.mainfigs.diff
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_2mo_mainfigs_diff.pdf", width = 6.69, height = 3.9) #height and width in inches: 6.69, height = 9.84
+layout.Ch2.SUP.2mo.mainfigs.diff
+dev.off()
+```
+
+
+
+
+
+### 9d exposure plots
+```{r}
+layout.Ch2.SUP.2mo.CR.9d.v1 <- ggarrange(plot_surv_2mo_9d_all, plot_surv_2mo_9d_diff.est, plot_growth_2mo_9d_all, plot_growth_2mo_9d_diff.est, plot_CS_9d_all, p.dummy,
+          ncol = 2, nrow = 3,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.2mo.CR.9d.v1
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_2mo_CR_9d.pdf", width = 6.69, height = 5.85) #height and width in inches: 6.69, height = 9.84
+layout.Ch2.SUP.2mo.CR.9d.v1
+dev.off()
+```
+
+
+## Dummy plot to fill out spaces
+
+```{r}
+p.dummy= ggplot() + theme_light() 
+p.dummy + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_blank()) 
+p.dummy
+```
+
+# Underlying data and plots
+## 1 week post-settlement
+### End of exposure (7d)
+#### Survival
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_surv_7d_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_1wo_7d_PAR_NEC$x, ymin=pred_surv_1wo_7d_PAR_NEC$Q2.5, ymax=pred_surv_1wo_7d_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_1wo_7d_UV_NEC$x, ymin=pred_surv_1wo_7d_UV_NEC$Q2.5, ymax=pred_surv_1wo_7d_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_1wo_7d_PAR_NEC$x, y=pred_surv_1wo_7d_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_1wo_7d_UV_NEC$x, y=pred_surv_1wo_7d_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_1wo_7d_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_1wo_7d_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_surv_1wo_7d_NEC <- p_NEC
+plot_surv_1wo_7d_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_surv_7d_predvals.RData")
+
+pred_surv_1wo_7d$diff_data$inv.x <- 10^pred_surv_1wo_7d$diff_data$x
+
+p.comp.diff = ggplot(pred_surv_1wo_7d$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="b)")
+
+plot_surv_1wo_7d_diff.est <- p.comp.diff
+plot_surv_1wo_7d_diff.est
+```
+
+
+
+
+
+
+## 2 months post-settlement
+### Part-way through exposure (9d)
+#### Survival
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_surv_9d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_surv_9d_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_surv_2mo_9d_PAR$x, ymin=pred_surv_2mo_9d_PAR$Q2.5, ymax=pred_surv_2mo_9d_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_surv_2mo_9d_UV$x, ymin=pred_surv_2mo_9d_UV$Q2.5, ymax=pred_surv_2mo_9d_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_surv_2mo_9d_PAR$x, y=pred_surv_2mo_9d_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_surv_2mo_9d_UV$x, y=pred_surv_2mo_9d_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_2mo_9d_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_2mo_9d_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_surv_2mo_9d_all <- p.all
+plot_surv_2mo_9d_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_surv_9d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_surv_9d_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_2mo_9d_PAR_NEC$x, ymin=pred_surv_2mo_9d_PAR_NEC$Q2.5, ymax=pred_surv_2mo_9d_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_2mo_9d_UV_NEC$x, ymin=pred_surv_2mo_9d_UV_NEC$Q2.5, ymax=pred_surv_2mo_9d_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_2mo_9d_PAR_NEC$x, y=pred_surv_2mo_9d_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_2mo_9d_UV_NEC$x, y=pred_surv_2mo_9d_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_9d_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_9d_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="a) 9 day exposure")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_surv_2mo_9d_NEC <- p_NEC
+plot_surv_2mo_9d_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_surv_9d_predvals.RData")
+
+pred_surv_2mo_9d$diff_data$inv.x <- 10^pred_surv_2mo_9d$diff_data$x
+
+p.comp.diff = ggplot(pred_surv_2mo_9d$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(),
+                  subtitle="b)")
+
+plot_surv_2mo_9d_diff.est <- p.comp.diff
+plot_surv_2mo_9d_diff.est
+```
+
+#### Relative growth
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_growth_9d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_growth_9d_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_growth_2mo_9d_PAR$x, ymin=pred_growth_2mo_9d_PAR$Q2.5, ymax=pred_growth_2mo_9d_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_growth_2mo_9d_UV$x, ymin=pred_growth_2mo_9d_UV$Q2.5, ymax=pred_growth_2mo_9d_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_growth_2mo_9d_PAR$x, y=pred_growth_2mo_9d_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_growth_2mo_9d_UV$x, y=pred_growth_2mo_9d_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_2mo_9d_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_2mo_9d_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Relative~growth~("%")),
+              subtitle="c)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.37), breaks = c(0, 0.25, 0.5, 0.75, 1., 1.25), labels = c(0, 25, 50, 75, 100, 125))
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_growth_2mo_9d_all <- p.all
+plot_growth_2mo_9d_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_growth_9d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_growth_9d_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_growth_2mo_9d_PAR_NEC$x, ymin=pred_growth_2mo_9d_PAR_NEC$Q2.5, ymax=pred_growth_2mo_9d_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_growth_2mo_9d_UV_NEC$x, ymin=pred_growth_2mo_9d_UV_NEC$Q2.5, ymax=pred_growth_2mo_9d_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_growth_2mo_9d_PAR_NEC$x, y=pred_growth_2mo_9d_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_growth_2mo_9d_UV_NEC$x, y=pred_growth_2mo_9d_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_9d_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_9d_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Relative~growth~("%")),
+              subtitle="c)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.36), breaks = c(0, 0.25, 0.5, 0.75, 1.0, 1.25), labels = c(0, 25, 50, 75, 100, 125)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_growth_2mo_9d_NEC <- p_NEC
+plot_growth_2mo_9d_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_growth_9d_predvals.RData")
+
+pred_growth_2mo_9d$diff_data$inv.x <- 10^pred_growth_2mo_9d$diff_data$x
+
+p.comp.diff = ggplot(pred_growth_2mo_9d$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="d)")
+
+plot_growth_2mo_9d_diff.est <- p.comp.diff
+plot_growth_2mo_9d_diff.est
+```
+
+
+#### Coral colour score
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_CS_9d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_CS_0d_data.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen", "PAR_t0" = "gray75", "UVR_t0" = "gray75", "Holding tank" = "orchid3")) + theme_light() # (add in if plotting t0 values)
+
+
+#Add in the below if plotting t0 values as comparison
+p.all= p.all+ geom_point(data = CS_0d_PAR_data, aes(x = raw.x, y = CS, colour=factor(light), alpha = 0.3), size = 1.6, position=position_jitter(width = .035, height=0.03), shape = 16)
+p.all= p.all+ geom_point(data = CS_0d_UV_data, aes(x = raw.x, y = CS, colour= factor(light), alpha = 0.3), size = 1.9, position=position_jitter(width = .035, height=0.03), shape = 17)
+
+p.all= p.all+ geom_point(data = CS_9d_PAR_data, aes(x = raw.x, y = CS, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .035, height=0.03))
+p.all= p.all+ geom_point(data = CS_9d_UV_data, aes(x = raw.x, y = CS, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .035, height=0.03))
+
+
+
+#Add in the below if plotting husbandry control/holding tank values as a reference
+p.all= p.all+ geom_point(data = CS_0d_HT_data, aes(x = raw.x, y = CS, colour=factor(light), alpha = 0.3), size = 1.6, position=position_jitter(width = .035, height=0.03), shape = 18)
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Coral~colour~score),
+              subtitle="e)")
+p.all= p.all+ scale_y_continuous(limits = c(-0.03, 7)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue", "gray75", "gray75")) # (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_CS_9d_all <- p.all
+plot_CS_9d_all
+```
+
+NEC subset MANEC plot - NA
+
+Posterior differences plot - NA
+
+
+
+### End of exposure (14d)
+#### Survival
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_surv_14d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_surv_14d_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_2mo_14d_PAR_NEC$x, ymin=pred_surv_2mo_14d_PAR_NEC$Q2.5, ymax=pred_surv_2mo_14d_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_surv_2mo_14d_UV_NEC$x, ymin=pred_surv_2mo_14d_UV_NEC$Q2.5, ymax=pred_surv_2mo_14d_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_2mo_14d_PAR_NEC$x, y=pred_surv_2mo_14d_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_surv_2mo_14d_UV_NEC$x, y=pred_surv_2mo_14d_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_14d_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_14d_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_surv_2mo_14dNEC <- p_NEC
+plot_surv_2mo_14dNEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_surv_14d_predvals.RData")
+
+pred_surv_2mo_14d$diff_data$inv.x <- 10^pred_surv_2mo_14d$diff_data$x
+
+p.comp.diff = ggplot(pred_surv_2mo_14d$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(),
+                  subtitle="b)")
+
+plot_surv_2mo_14d_diff.est <- p.comp.diff
+plot_surv_2mo_14d_diff.est
+```
+
+#### Relative growth
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_growth_14d_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_growth_14d_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_growth_2mo_14d_PAR_NEC$x, ymin=pred_growth_2mo_14d_PAR_NEC$Q2.5, ymax=pred_growth_2mo_14d_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_growth_2mo_14d_UV_NEC$x, ymin=pred_growth_2mo_14d_UV_NEC$Q2.5, ymax=pred_growth_2mo_14d_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_growth_2mo_14d_PAR_NEC$x, y=pred_growth_2mo_14d_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_growth_2mo_14d_UV_NEC$x, y=pred_growth_2mo_14d_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_14d_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_14d_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Relative~growth~("%")),
+              subtitle="c)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.36), breaks = c(0, 0.25, 0.5, 0.75, 1.0, 1.25), labels = c(0, 25, 50, 75, 100, 125)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_growth_2mo_14d_NEC <- p_NEC
+plot_growth_2mo_14d_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_growth_14d_predvals.RData")
+
+pred_growth_2mo_14d$diff_data$inv.x <- 10^pred_growth_2mo_14d$diff_data$x
+
+p.comp.diff = ggplot(pred_growth_2mo_14d$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="d)")
+
+plot_growth_2mo_14d_diff.est <- p.comp.diff
+plot_growth_2mo_14d_diff.est
+```
+
+
+
+#### Coral colour score
+
+NEC subset MANEC plot - NA
+
+Posterior differences plot - NA
+
+
+
+#### Maximum quantum yield
+
+NEC subset MANEC plot - NA
+
+Posterior differences plot - NA
+
+

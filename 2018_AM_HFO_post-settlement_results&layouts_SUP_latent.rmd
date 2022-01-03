@@ -1,0 +1,2424 @@
+---
+title: "2018.03_AM_HFO_post-settlement_results&layouts_v1"
+author: "Mikaela Nordborg"
+date: "23/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #install from CRAN in the first instance, for intermediate updates use devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+library(ggdist)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+# SUP - Latent effects
+
+## Layouts
+### 1 week old recruits
+#### Latent survival
+```{r}
+layout.Ch2.SUP.1wo.lat.surv <- ggarrange(plot_lat_surv_1wo_8dpe_all, plot_lat_surv_1wo_8dpe_diff.est, plot_lat_surv_1wo_2wpe_all,  plot_lat_surv_1wo_2wpe_diff.est,plot_lat_surv_1wo_3wpe_all, plot_lat_surv_1wo_3wpe_diff.est, plot_lat_surv_1wo_6wpe_all, plot_lat_surv_1wo_6wpe_diff.est,
+          ncol = 2, nrow = 4,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.1wo.lat.surv
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_1wo_lat_surv.pdf", width = 6.69, height = 7.44) #height and width in inches
+layout.Ch2.SUP.1wo.lat.surv
+dev.off()
+```
+
+
+#### Latent relative growth
+```{r}
+layout.Ch2.SUP.1wo.lat.growth <- ggarrange(plot_lat_growth_1wo_8dpe_all, plot_lat_growth_1wo_8dpe_diff.est, plot_lat_growth_1wo_2wpe_all, plot_lat_growth_1wo_2wpe_diff.est, plot_lat_growth_1wo_3wpe_all, plot_lat_growth_1wo_3wpe_diff.est, plot_lat_growth_1wo_6wpe_all, plot_lat_growth_1wo_6wpe_diff.est,
+          ncol = 2, nrow = 4,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.1wo.lat.growth
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_1wo_lat_growth.pdf", width = 6.69, height = 7.44) #height and width in inches
+layout.Ch2.SUP.1wo.lat.growth
+dev.off()
+```
+
+
+#### Latent algal symbiont uptake
+```{r}
+layout.Ch2.SUP.1wo.lat.symb <- ggarrange(plot_lat_symb_1wo_8dpe_all, plot_lat_symb_1wo_8dpe_diff.est, plot_lat_symb_1wo_2wpe_all, plot_lat_symb_1wo_2wpe_diff.est, plot_lat_symb_1wo_3wpe_all, p.dummy, plot_lat_symb_1wo_6wpe_all, p.dummy,
+          ncol = 2, nrow = 4,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.1wo.lat.symb
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_1wo_lat_symb.pdf", width = 6.69, height = 7.44) #height and width in inches
+layout.Ch2.SUP.1wo.lat.symb
+dev.off()
+```
+
+
+
+
+### 2 month old juveniles
+#### Latent survival C-R & posterior difference plots
+```{r}
+layout.Ch2.SUP.2mo.lat_surv <- ggarrange(plot_lat_surv_2mo_1wpe_all, plot_lat_surv_2mo_1wpe_diff.est, plot_lat_surv_2mo_2wpe_all, plot_lat_surv_2mo_2wpe_diff.est, plot_lat_surv_2mo_3wpe_all, plot_lat_surv_2mo_3wpe_diff.est, plot_lat_surv_2mo_4wpe_all, plot_lat_surv_2mo_4wpe_diff.est, plot_lat_surv_2mo_6wpe_all, plot_lat_surv_2mo_6wpe_diff.est,
+          ncol = 2, nrow = 5,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.2mo.lat_surv
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_2mo_lat_surv.pdf", width = 6.69, height = 9.3)
+layout.Ch2.SUP.2mo.lat_surv
+dev.off()
+```
+
+#### Latent relative growth C-R & posterior difference plots
+```{r}
+layout.Ch2.SUP.2mo.lat_growth <- ggarrange(plot_lat_growth_2mo_1wpe_all, plot_lat_growth_2mo_1wpe_diff.est, plot_lat_growth_2mo_2wpe_all, plot_lat_growth_2mo_2wpe_diff.est, plot_lat_growth_2mo_3wpe_all, plot_lat_growth_2mo_3wpe_diff.est, plot_lat_growth_2mo_4wpe_all, plot_lat_growth_2mo_4wpe_diff.est, plot_lat_growth_2mo_6wpe_all, plot_lat_growth_2mo_6wpe_diff.est,
+          ncol = 2, nrow = 5,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.2mo.lat_growth
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_2mo_lat_growth.pdf", width = 6.69, height = 9.3)
+layout.Ch2.SUP.2mo.lat_growth
+dev.off()
+```
+
+
+
+#### Latent vertical growth C-R & posterior difference plots
+```{r}
+layout.Ch2.SUP.2mo.lat_VG <- ggarrange( plot_lat_VG_2mo_2wpe_all, plot_lat_VG_2mo_3wpe_all, plot_lat_VG_2mo_4wpe_all, plot_lat_VG_2mo_6wpe_all,
+          ncol = 1, nrow = 4,
+          widths = c(0.5, 0.5))
+layout.Ch2.SUP.2mo.lat_VG
+```
+##### Export
+```{r}
+pdf("Ch2_SUP_fig_2mo_lat_VG.pdf", width = 3.345, height = 7.44)
+layout.Ch2.SUP.2mo.lat_VG
+dev.off()
+```
+
+
+
+## Dummy plot to fill out spaces
+
+```{r}
+p.dummy= ggplot() + theme_light() 
+p.dummy + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_blank()) 
+p.dummy
+```
+
+
+
+# Underlying data and graphics
+## 1wo
+### Post-exposure
+#### Latent survival
+##### 8 days post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_8dpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_8dpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_8dpe_PAR$x, ymin=pred_lat_surv_1wo_8dpe_PAR$Q2.5, ymax=pred_lat_surv_1wo_8dpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_8dpe_UV$x, ymin=pred_lat_surv_1wo_8dpe_UV$Q2.5, ymax=pred_lat_surv_1wo_8dpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_8dpe_PAR$x, y=pred_lat_surv_1wo_8dpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_8dpe_UV$x, y=pred_lat_surv_1wo_8dpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_1wo_8dpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_1wo_8dpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~survival~("%")), #Latent~survival~("%")
+              subtitle="a) 8 days post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_8dpe_all <- p.all
+plot_lat_surv_1wo_8dpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_8dpe_predvals.RData")
+
+pred_lat_surv_1wo_8dpe$diff_data$inv.x <- 10^pred_lat_surv_1wo_8dpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_1wo_8dpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") #name = "Posterior differences estimate"
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(),
+                  subtitle="b)")
+
+plot_lat_surv_1wo_8dpe_diff.est <- p.comp.diff
+plot_lat_surv_1wo_8dpe_diff.est
+```
+
+##### 2 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_2wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_2wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_2wpe_PAR$x, ymin=pred_lat_surv_1wo_2wpe_PAR$Q2.5, ymax=pred_lat_surv_1wo_2wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_2wpe_UV$x, ymin=pred_lat_surv_1wo_2wpe_UV$Q2.5, ymax=pred_lat_surv_1wo_2wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_2wpe_PAR$x, y=pred_lat_surv_1wo_2wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_2wpe_UV$x, y=pred_lat_surv_1wo_2wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_1wo_2wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_1wo_2wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~survival~("%")),
+              subtitle="c) 2 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_2wpe_all <- p.all
+plot_lat_surv_1wo_2wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_2wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_2wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_1wo_2wpe_PAR_NEC$x, ymin=pred_lat_surv_1wo_2wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_1wo_2wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_1wo_2wpe_UV_NEC$x, ymin=pred_lat_surv_1wo_2wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_1wo_2wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_1wo_2wpe_PAR_NEC$x, y=pred_lat_surv_1wo_2wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_1wo_2wpe_UV_NEC$x, y=pred_lat_surv_1wo_2wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_1wo_2wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_1wo_2wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(),
+              y=expression(Latent~survival~("%")),
+              subtitle="a) 2 weeks post-exposure")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_2wpe_NEC <- p_NEC
+plot_lat_surv_1wo_2wpe_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_2wpe_predvals.RData")
+
+pred_lat_surv_1wo_2wpe$diff_data$inv.x <- 10^pred_lat_surv_1wo_2wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_1wo_2wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") #name = "Posterior differences estimate"
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="d)")
+
+plot_lat_surv_1wo_2wpe_diff.est <- p.comp.diff
+plot_lat_surv_1wo_2wpe_diff.est
+```
+
+##### 3 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_3wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_3wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_3wpe_PAR$x, ymin=pred_lat_surv_1wo_3wpe_PAR$Q2.5, ymax=pred_lat_surv_1wo_3wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_3wpe_UV$x, ymin=pred_lat_surv_1wo_3wpe_UV$Q2.5, ymax=pred_lat_surv_1wo_3wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_3wpe_PAR$x, y=pred_lat_surv_1wo_3wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_3wpe_UV$x, y=pred_lat_surv_1wo_3wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_1wo_3wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_1wo_3wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~survival~("%")), #Latent~survival~("%")
+              subtitle="e) 3 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_3wpe_all <- p.all
+plot_lat_surv_1wo_3wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_3wpe_predvals.RData")
+
+pred_lat_surv_1wo_3wpe$diff_data$inv.x <- 10^pred_lat_surv_1wo_3wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_1wo_3wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") #name = "Posterior differences estimate"
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(),
+                  subtitle="f)")
+
+plot_lat_surv_1wo_3wpe_diff.est <- p.comp.diff
+plot_lat_surv_1wo_3wpe_diff.est
+```
+
+##### 6 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_6wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_6wpe_PAR$x, ymin=pred_lat_surv_1wo_6wpe_PAR$Q2.5, ymax=pred_lat_surv_1wo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_1wo_6wpe_UV$x, ymin=pred_lat_surv_1wo_6wpe_UV$Q2.5, ymax=pred_lat_surv_1wo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_6wpe_PAR$x, y=pred_lat_surv_1wo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_1wo_6wpe_UV$x, y=pred_lat_surv_1wo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_1wo_6wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_1wo_6wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~survival~("%")), #Latent~survival~("%")
+              subtitle="g) 6 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_6wpe_all <- p.all
+plot_lat_surv_1wo_6wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_6wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_6wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_1wo_6wpe_PAR_NEC$x, ymin=pred_lat_surv_1wo_6wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_1wo_6wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_1wo_6wpe_UV_NEC$x, ymin=pred_lat_surv_1wo_6wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_1wo_6wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_1wo_6wpe_PAR_NEC$x, y=pred_lat_surv_1wo_6wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_1wo_6wpe_UV_NEC$x, y=pred_lat_surv_1wo_6wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_1wo_6wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_1wo_6wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_6wpe_NEC <- p_NEC
+plot_lat_surv_1wo_6wpe_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_6wpe_predvals.RData")
+
+pred_lat_surv_1wo_6wpe$diff_data$inv.x <- 10^pred_lat_surv_1wo_6wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_1wo_6wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") #name = "Posterior differences estimate"
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(),
+                  subtitle="h)")
+
+plot_lat_surv_1wo_6wpe_diff.est <- p.comp.diff
+plot_lat_surv_1wo_6wpe_diff.est
+```
+
+
+#### Latent relative growth
+##### 8 days post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_8dpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_8dpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_8dpe_PAR$x, ymin=pred_lat_growth_1wo_8dpe_PAR$Q2.5, ymax=pred_lat_growth_1wo_8dpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_8dpe_UV$x, ymin=pred_lat_growth_1wo_8dpe_UV$Q2.5, ymax=pred_lat_growth_1wo_8dpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_8dpe_PAR$x, y=pred_lat_growth_1wo_8dpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_8dpe_UV$x, y=pred_lat_growth_1wo_8dpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_1wo_8dpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_1wo_8dpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="a) 8 days post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.3, 0.6, 0.9), labels = c(0, 30, 60, 90)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_1wo_8dpe_all <- p.all
+plot_lat_growth_1wo_8dpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_8dpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_surv_8dpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_1wo_8dpe_PAR_NEC$x, ymin=pred_lat_surv_1wo_8dpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_1wo_8dpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_1wo_8dpe_UV_NEC$x, ymin=pred_lat_surv_1wo_8dpe_UV_NEC$Q2.5, ymax=pred_lat_surv_1wo_8dpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_1wo_8dpe_PAR_NEC$x, y=pred_lat_surv_1wo_8dpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_1wo_8dpe_UV_NEC$x, y=pred_lat_surv_1wo_8dpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_1wo_8dpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_1wo_8dpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~survival~("%")),
+              subtitle="c) 8 days post-exposure")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_1wo_8dpe_NEC <- p_NEC
+plot_lat_surv_1wo_8dpe_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_8dpe_predvals.RData")
+
+pred_lat_growth_1wo_8dpe$diff_data$inv.x <- 10^pred_lat_growth_1wo_8dpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_1wo_8dpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+                  y=expression(),
+                  subtitle="b)")
+
+plot_lat_growth_1wo_8dpe_diff.est <- p.comp.diff
+plot_lat_growth_1wo_8dpe_diff.est
+```
+
+##### 2 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_2wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_2wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_2wpe_PAR$x, ymin=pred_lat_growth_1wo_2wpe_PAR$Q2.5, ymax=pred_lat_growth_1wo_2wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_2wpe_UV$x, ymin=pred_lat_growth_1wo_2wpe_UV$Q2.5, ymax=pred_lat_growth_1wo_2wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_2wpe_PAR$x, y=pred_lat_growth_1wo_2wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_2wpe_UV$x, y=pred_lat_growth_1wo_2wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_1wo_2wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_1wo_2wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="c) 2 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.3, 0.6, 0.9), labels = c(0, 30, 60, 90)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_1wo_2wpe_all <- p.all
+plot_lat_growth_1wo_2wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_2wpe_predvals.RData")
+
+pred_lat_growth_1wo_2wpe$diff_data$inv.x <- 10^pred_lat_growth_1wo_2wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_1wo_2wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+                  y=expression(),
+                  subtitle="d)")
+
+plot_lat_growth_1wo_2wpe_diff.est <- p.comp.diff
+plot_lat_growth_1wo_2wpe_diff.est
+```
+
+##### 3 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_3wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_3wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_3wpe_PAR$x, ymin=pred_lat_growth_1wo_3wpe_PAR$Q2.5, ymax=pred_lat_growth_1wo_3wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_3wpe_UV$x, ymin=pred_lat_growth_1wo_3wpe_UV$Q2.5, ymax=pred_lat_growth_1wo_3wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_3wpe_PAR$x, y=pred_lat_growth_1wo_3wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_3wpe_UV$x, y=pred_lat_growth_1wo_3wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_1wo_3wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_1wo_3wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="e) 3 weeks post-exposure")
+p.all= p.all+ scale_y_continuous(limits = c(-0.03, 2.35), breaks = c(0, 0.75, 1.5, 2.25), labels = c(0, 75, 150, 225)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_1wo_3wpe_all <- p.all
+plot_lat_growth_1wo_3wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_3wpe_predvals.RData")
+
+pred_lat_growth_1wo_3wpe$diff_data$inv.x <- 10^pred_lat_growth_1wo_3wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_1wo_3wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+                  y=expression(),
+                  subtitle="f)")
+
+plot_lat_growth_1wo_3wpe_diff.est <- p.comp.diff
+plot_lat_growth_1wo_3wpe_diff.est
+```
+##### 6 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_6wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_6wpe_PAR$x, ymin=pred_lat_growth_1wo_6wpe_PAR$Q2.5, ymax=pred_lat_growth_1wo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_1wo_6wpe_UV$x, ymin=pred_lat_growth_1wo_6wpe_UV$Q2.5, ymax=pred_lat_growth_1wo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_6wpe_PAR$x, y=pred_lat_growth_1wo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_1wo_6wpe_UV$x, y=pred_lat_growth_1wo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_1wo_6wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_1wo_6wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="g) 6 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 16.05), breaks = c(0, 5, 10, 15.0), labels = c(0, 500, 1000, 1500)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_1wo_6wpe_all <- p.all
+plot_lat_growth_1wo_6wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_6wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_6wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_1wo_6wpe_PAR_NEC$x, ymin=pred_lat_growth_1wo_6wpe_PAR_NEC$Q2.5, ymax=pred_lat_growth_1wo_6wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_1wo_6wpe_UV_NEC$x, ymin=pred_lat_growth_1wo_6wpe_UV_NEC$Q2.5, ymax=pred_lat_growth_1wo_6wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_1wo_6wpe_PAR_NEC$x, y=pred_lat_growth_1wo_6wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+#p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_1wo_6wpe_UV_NEC$x, y=pred_lat_growth_1wo_6wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_1wo_6wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_1wo_6wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 16.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_1wo_6wpe_NEC <- p_NEC
+plot_lat_growth_1wo_6wpe_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_growth_6wpe_predvals.RData")
+
+pred_lat_growth_1wo_6wpe$diff_data$inv.x <- 10^pred_lat_growth_1wo_6wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_1wo_6wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(),
+                  subtitle="h)")
+
+plot_lat_growth_1wo_6wpe_diff.est <- p.comp.diff
+plot_lat_growth_1wo_6wpe_diff.est
+```
+
+
+
+#### Symbiont uptake/presence
+##### 8 days post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_8dpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_8dpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_8dpe_PAR$x, ymin=pred_lat_symb_1wo_8dpe_PAR$Q2.5, ymax=pred_lat_symb_1wo_8dpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_8dpe_UV$x, ymin=pred_lat_symb_1wo_8dpe_UV$Q2.5, ymax=pred_lat_symb_1wo_8dpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_8dpe_PAR$x, y=pred_lat_symb_1wo_8dpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_8dpe_UV$x, y=pred_lat_symb_1wo_8dpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = symb_1wo_8dpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 0.8, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = symb_1wo_8dpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 0.8, position=position_jitter(width = .07, height=0))
+
+
+
+#p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Algal~symbionts~observed),
+              subtitle="a) 8 days post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_8dpe_all <- p.all
+plot_lat_symb_1wo_8dpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_8dpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_8dpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_symb_1wo_8dpe_PAR_NEC$x, ymin=pred_lat_symb_1wo_8dpe_PAR_NEC$Q2.5, ymax=pred_lat_symb_1wo_8dpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_symb_1wo_8dpe_UV_NEC$x, ymin=pred_lat_symb_1wo_8dpe_UV_NEC$Q2.5, ymax=pred_lat_symb_1wo_8dpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_symb_1wo_8dpe_PAR_NEC$x, y=pred_lat_symb_1wo_8dpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_symb_1wo_8dpe_UV_NEC$x, y=pred_lat_symb_1wo_8dpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ stat_dots(data = symb_1wo_8dpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p_NEC= p_NEC+ stat_dots(data = symb_1wo_8dpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p_NEC= p_NEC+ geom_point(data = symb_1wo_8dpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p_NEC= p_NEC+ geom_point(data = symb_1wo_8dpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p_NEC= p_NEC+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Algal~symbionts~observed),
+              subtitle="g) 8 days post-exposure")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 500), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_8dpe_NEC <- p_NEC
+plot_lat_symb_1wo_8dpe_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_8dpe_predvals.RData")
+
+pred_lat_symb_1wo_8dpe$diff_data$inv.x <- 10^pred_lat_symb_1wo_8dpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_symb_1wo_8dpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="b)")
+
+plot_lat_symb_1wo_8dpe_diff.est <- p.comp.diff
+plot_lat_symb_1wo_8dpe_diff.est
+```
+
+##### 2 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_2wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_2wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_2wpe_PAR$x, ymin=pred_lat_symb_1wo_2wpe_PAR$Q2.5, ymax=pred_lat_symb_1wo_2wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_2wpe_UV$x, ymin=pred_lat_symb_1wo_2wpe_UV$Q2.5, ymax=pred_lat_symb_1wo_2wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_2wpe_PAR$x, y=pred_lat_symb_1wo_2wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_2wpe_UV$x, y=pred_lat_symb_1wo_2wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = symb_1wo_2wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = symb_1wo_2wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = symb_1wo_2wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = symb_1wo_2wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Algal~symbionts~observed),
+              subtitle="c) 2 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_2wpe_all <- p.all
+plot_lat_symb_1wo_2wpe_all
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_2wpe_data.RData")
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_2wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_symb_1wo_2wpe_PAR_NEC$x, ymin=pred_lat_symb_1wo_2wpe_PAR_NEC$Q2.5, ymax=pred_lat_symb_1wo_2wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_symb_1wo_2wpe_UV_NEC$x, ymin=pred_lat_symb_1wo_2wpe_UV_NEC$Q2.5, ymax=pred_lat_symb_1wo_2wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_symb_1wo_2wpe_PAR_NEC$x, y=pred_lat_symb_1wo_2wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_symb_1wo_2wpe_UV_NEC$x, y=pred_lat_symb_1wo_2wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ stat_dots(data = symb_1wo_2wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p_NEC= p_NEC+ stat_dots(data = symb_1wo_2wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p_NEC= p_NEC+ geom_point(data = symb_1wo_2wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p_NEC= p_NEC+ geom_point(data = symb_1wo_2wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p_NEC= p_NEC+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Algal~symbionts~observed),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 500), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_2wpe_NEC <- p_NEC
+plot_lat_symb_1wo_2wpe_NEC
+```
+
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_2wpe_predvals.RData")
+
+pred_lat_symb_1wo_2wpe$diff_data$inv.x <- 10^pred_lat_symb_1wo_2wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_symb_1wo_2wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="d)")
+
+plot_lat_symb_1wo_2wpe_diff.est <- p.comp.diff
+plot_lat_symb_1wo_2wpe_diff.est
+```
+##### 3 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_3wpe_data.RData")
+#load("2018.01_AM_HFO_1wo_lat_symb_3wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_3wpe_PAR$x, ymin=pred_lat_symb_1wo_3wpe_PAR$Q2.5, ymax=pred_lat_symb_1wo_3wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_3wpe_UV$x, ymin=pred_lat_symb_1wo_3wpe_UV$Q2.5, ymax=pred_lat_symb_1wo_3wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_3wpe_PAR$x, y=pred_lat_symb_1wo_3wpe_PAR$Estimate), color = 'grey30', size=0.5)
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_3wpe_UV$x, y=pred_lat_symb_1wo_3wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = symb_1wo_3wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = symb_1wo_3wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = symb_1wo_3wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = symb_1wo_3wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Algal~symbionts),
+              subtitle="e) 3 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_3wpe_all <- p.all
+plot_lat_symb_1wo_3wpe_all
+```
+
+No posterior comparisons performed as no models could be fitted.
+
+
+##### 6 weeks post-exposure
+```{r}
+load("1wo/2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+#load("2018.01_AM_HFO_1wo_lat_symb_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_6wpe_PAR$x, ymin=pred_lat_symb_1wo_6wpe_PAR$Q2.5, ymax=pred_lat_symb_1wo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_6wpe_UV$x, ymin=pred_lat_symb_1wo_6wpe_UV$Q2.5, ymax=pred_lat_symb_1wo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_6wpe_PAR$x, y=pred_lat_symb_1wo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_6wpe_UV$x, y=pred_lat_symb_1wo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = symb_1wo_6wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = symb_1wo_6wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = symb_1wo_6wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = symb_1wo_6wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Algal~symbionts~present),
+              subtitle="f) 6 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_6wpe_all <- p.all
+plot_lat_symb_1wo_6wpe_all
+```
+
+
+
+No posterior comparisons performed as no models could be fitted.
+
+
+
+## 2 months post-settlement
+### Survival
+#### Survival 1 week post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_1wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_1wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_1wpe_PAR$x, ymin=pred_lat_surv_2mo_1wpe_PAR$Q2.5, ymax=pred_lat_surv_2mo_1wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_1wpe_UV$x, ymin=pred_lat_surv_2mo_1wpe_UV$Q2.5, ymax=pred_lat_surv_2mo_1wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_1wpe_PAR$x, y=pred_lat_surv_2mo_1wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_1wpe_UV$x, y=pred_lat_surv_2mo_1wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_2mo_1wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_2mo_1wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="a) 1 week post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_1wpe_all <- p.all
+plot_lat_surv_2mo_1wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_1wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_1wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_1wpe_PAR_NEC$x, ymin=pred_lat_surv_2mo_1wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_2mo_1wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_1wpe_UV_NEC$x, ymin=pred_lat_surv_2mo_1wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_2mo_1wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_1wpe_PAR_NEC$x, y=pred_lat_surv_2mo_1wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_1wpe_UV_NEC$x, y=pred_lat_surv_2mo_1wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_1wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_1wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_1wpe_NEC <- p_NEC
+plot_lat_surv_2mo_1wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_1wpe_predvals.RData")
+
+pred_lat_surv_2mo_1wpe$diff_data$inv.x <- 10^pred_lat_surv_2mo_1wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_2mo_1wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Treatment~concentration~(μg~TAH~"L"^{-1})
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="b)")
+
+plot_lat_surv_2mo_1wpe_diff.est <- p.comp.diff
+plot_lat_surv_2mo_1wpe_diff.est
+```
+
+
+#### 2 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_2wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_2wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_2wpe_PAR$x, ymin=pred_lat_surv_2mo_2wpe_PAR$Q2.5, ymax=pred_lat_surv_2mo_2wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_2wpe_UV$x, ymin=pred_lat_surv_2mo_2wpe_UV$Q2.5, ymax=pred_lat_surv_2mo_2wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_2wpe_PAR$x, y=pred_lat_surv_2mo_2wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_2wpe_UV$x, y=pred_lat_surv_2mo_2wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_2mo_2wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_2mo_2wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="c) 2 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_2wpe_all <- p.all
+plot_lat_surv_2mo_2wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_2wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_2wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_2wpe_PAR_NEC$x, ymin=pred_lat_surv_2mo_2wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_2mo_2wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_2wpe_UV_NEC$x, ymin=pred_lat_surv_2mo_2wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_2mo_2wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_2wpe_PAR_NEC$x, y=pred_lat_surv_2mo_2wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_2wpe_UV_NEC$x, y=pred_lat_surv_2mo_2wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_2wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_2wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_2wpe_NEC <- p_NEC
+plot_lat_surv_2mo_2wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_2wpe_predvals.RData")
+
+pred_lat_surv_2mo_2wpe$diff_data$inv.x <- 10^pred_lat_surv_2mo_2wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_2mo_2wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Treatment~concentration~(μg~TAH~"L"^{-1})
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="d)")
+
+plot_lat_surv_2mo_2wpe_diff.est <- p.comp.diff
+plot_lat_surv_2mo_2wpe_diff.est
+```
+
+
+#### 3 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_3wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_3wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_3wpe_PAR$x, ymin=pred_lat_surv_2mo_3wpe_PAR$Q2.5, ymax=pred_lat_surv_2mo_3wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_3wpe_UV$x, ymin=pred_lat_surv_2mo_3wpe_UV$Q2.5, ymax=pred_lat_surv_2mo_3wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_3wpe_PAR$x, y=pred_lat_surv_2mo_3wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_3wpe_UV$x, y=pred_lat_surv_2mo_3wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_2mo_3wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_2mo_3wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="e) 3 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_3wpe_all <- p.all
+plot_lat_surv_2mo_3wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_3wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_3wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_3wpe_PAR_NEC$x, ymin=pred_lat_surv_2mo_3wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_2mo_3wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_3wpe_UV_NEC$x, ymin=pred_lat_surv_2mo_3wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_2mo_3wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_3wpe_PAR_NEC$x, y=pred_lat_surv_2mo_3wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_3wpe_UV_NEC$x, y=pred_lat_surv_2mo_3wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_3wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_3wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_3wpe_NEC <- p_NEC
+plot_lat_surv_2mo_3wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_3wpe_predvals.RData")
+
+pred_lat_surv_2mo_3wpe$diff_data$inv.x <- 10^pred_lat_surv_2mo_3wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_2mo_3wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Treatment~concentration~(μg~TAH~"L"^{-1})
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="f)")
+
+plot_lat_surv_2mo_3wpe_diff.est <- p.comp.diff
+plot_lat_surv_2mo_3wpe_diff.est
+```
+
+
+#### 4 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_4wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_4wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_4wpe_PAR$x, ymin=pred_lat_surv_2mo_4wpe_PAR$Q2.5, ymax=pred_lat_surv_2mo_4wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_4wpe_UV$x, ymin=pred_lat_surv_2mo_4wpe_UV$Q2.5, ymax=pred_lat_surv_2mo_4wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_4wpe_PAR$x, y=pred_lat_surv_2mo_4wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_4wpe_UV$x, y=pred_lat_surv_2mo_4wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_2mo_4wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_2mo_4wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="g) 4 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_4wpe_all <- p.all
+plot_lat_surv_2mo_4wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_4wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_4wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_4wpe_PAR_NEC$x, ymin=pred_lat_surv_2mo_4wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_2mo_4wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_4wpe_UV_NEC$x, ymin=pred_lat_surv_2mo_4wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_2mo_4wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_4wpe_PAR_NEC$x, y=pred_lat_surv_2mo_4wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_4wpe_UV_NEC$x, y=pred_lat_surv_2mo_4wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_4wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_4wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_4wpe_NEC <- p_NEC
+plot_lat_surv_2mo_4wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_4wpe_predvals.RData")
+
+pred_lat_surv_2mo_4wpe$diff_data$inv.x <- 10^pred_lat_surv_2mo_4wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_2mo_4wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(), #Treatment~concentration~(μg~TAH~"L"^{-1})
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="h)")
+
+plot_lat_surv_2mo_4wpe_diff.est <- p.comp.diff
+plot_lat_surv_2mo_4wpe_diff.est
+```
+
+
+#### 6 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_6wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_6wpe_PAR$x, ymin=pred_lat_surv_2mo_6wpe_PAR$Q2.5, ymax=pred_lat_surv_2mo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_surv_2mo_6wpe_UV$x, ymin=pred_lat_surv_2mo_6wpe_UV$Q2.5, ymax=pred_lat_surv_2mo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_6wpe_PAR$x, y=pred_lat_surv_2mo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_surv_2mo_6wpe_UV$x, y=pred_lat_surv_2mo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = surv_2mo_6wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = surv_2mo_6wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Survival~("%")),
+              subtitle="i) 6 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_6wpe_all <- p.all
+plot_lat_surv_2mo_6wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_6wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_6wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_6wpe_PAR_NEC$x, ymin=pred_lat_surv_2mo_6wpe_PAR_NEC$Q2.5, ymax=pred_lat_surv_2mo_6wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_surv_2mo_6wpe_UV_NEC$x, ymin=pred_lat_surv_2mo_6wpe_UV_NEC$Q2.5, ymax=pred_lat_surv_2mo_6wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_6wpe_PAR_NEC$x, y=pred_lat_surv_2mo_6wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_surv_2mo_6wpe_UV_NEC$x, y=pred_lat_surv_2mo_6wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = surv_2mo_6wpe_PAR_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = surv_2mo_6wpe_UV_data, aes(x = raw.x, y = surv, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Survival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_surv_2mo_6wpe_NEC <- p_NEC
+plot_lat_surv_2mo_6wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_surv_6wpe_predvals.RData")
+
+pred_lat_surv_2mo_6wpe$diff_data$inv.x <- 10^pred_lat_surv_2mo_6wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_surv_2mo_6wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Treatment~concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="j)")
+
+plot_lat_surv_2mo_6wpe_diff.est <- p.comp.diff
+plot_lat_surv_2mo_6wpe_diff.est
+```
+
+
+
+
+### Relative growth
+#### Growth 1 week post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_1wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_1wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_1wpe_PAR$x, ymin=pred_lat_growth_2mo_1wpe_PAR$Q2.5, ymax=pred_lat_growth_2mo_1wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_1wpe_UV$x, ymin=pred_lat_growth_2mo_1wpe_UV$Q2.5, ymax=pred_lat_growth_2mo_1wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_1wpe_PAR$x, y=pred_lat_growth_2mo_1wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_1wpe_UV$x, y=pred_lat_growth_2mo_1wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_2mo_1wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_2mo_1wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="a) 1 week post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.7), breaks = c(0, 0.5, 1.0, 1.5), labels = c(0, 50, 100, 150)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_1wpe_all <- p.all
+plot_lat_growth_2mo_1wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_1wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_1wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_1wpe_PAR_NEC$x, ymin=pred_lat_growth_2mo_1wpe_PAR_NEC$Q2.5, ymax=pred_lat_growth_2mo_1wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_1wpe_UV_NEC$x, ymin=pred_lat_growth_2mo_1wpe_UV_NEC$Q2.5, ymax=pred_lat_growth_2mo_1wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_1wpe_PAR_NEC$x, y=pred_lat_growth_2mo_1wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_1wpe_UV_NEC$x, y=pred_lat_growth_2mo_1wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_1wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_1wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(growthival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03,  1.7), breaks = c(0, 0.5, 1.0, 1.5), labels = c(0, 50, 100, 150)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_1wpe_NEC <- p_NEC
+plot_lat_growth_2mo_1wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_1wpe_predvals.RData")
+
+pred_lat_growth_2mo_1wpe$diff_data$inv.x <- 10^pred_lat_growth_2mo_1wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_2mo_1wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="b)")
+
+plot_lat_growth_2mo_1wpe_diff.est <- p.comp.diff
+plot_lat_growth_2mo_1wpe_diff.est
+```
+
+
+#### 2 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_2wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_2wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_2wpe_PAR$x, ymin=pred_lat_growth_2mo_2wpe_PAR$Q2.5, ymax=pred_lat_growth_2mo_2wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_2wpe_UV$x, ymin=pred_lat_growth_2mo_2wpe_UV$Q2.5, ymax=pred_lat_growth_2mo_2wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_2wpe_PAR$x, y=pred_lat_growth_2mo_2wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_2wpe_UV$x, y=pred_lat_growth_2mo_2wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_2mo_2wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_2mo_2wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="c) 2 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 3.55), breaks = c(0, 1.0, 2.0, 3.0), labels = c(0, 100, 200, 300)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_2wpe_all <- p.all
+plot_lat_growth_2mo_2wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_2wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_2wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_2wpe_PAR_NEC$x, ymin=pred_lat_growth_2mo_2wpe_PAR_NEC$Q2.5, ymax=pred_lat_growth_2mo_2wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_2wpe_UV_NEC$x, ymin=pred_lat_growth_2mo_2wpe_UV_NEC$Q2.5, ymax=pred_lat_growth_2mo_2wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_2wpe_PAR_NEC$x, y=pred_lat_growth_2mo_2wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_2wpe_UV_NEC$x, y=pred_lat_growth_2mo_2wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_2wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_2wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Rleative~growth~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 3.55), breaks = c(0, 1.0, 2.0, 3.0), labels = c(0, 100, 200, 300))
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_2wpe_NEC <- p_NEC
+plot_lat_growth_2mo_2wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_2wpe_predvals.RData")
+
+pred_lat_growth_2mo_2wpe$diff_data$inv.x <- 10^pred_lat_growth_2mo_2wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_2mo_2wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="d)")
+
+plot_lat_growth_2mo_2wpe_diff.est <- p.comp.diff
+plot_lat_growth_2mo_2wpe_diff.est
+```
+
+
+#### 3 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_3wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_3wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_3wpe_PAR$x, ymin=pred_lat_growth_2mo_3wpe_PAR$Q2.5, ymax=pred_lat_growth_2mo_3wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_3wpe_UV$x, ymin=pred_lat_growth_2mo_3wpe_UV$Q2.5, ymax=pred_lat_growth_2mo_3wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_3wpe_PAR$x, y=pred_lat_growth_2mo_3wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_3wpe_UV$x, y=pred_lat_growth_2mo_3wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_2mo_3wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_2mo_3wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="e) 3 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 6.15), breaks = c(0, 2, 4, 6), labels = c(0, 200, 400, 600)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_3wpe_all <- p.all
+plot_lat_growth_2mo_3wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_3wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_3wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_3wpe_PAR_NEC$x, ymin=pred_lat_growth_2mo_3wpe_PAR_NEC$Q2.5, ymax=pred_lat_growth_2mo_3wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_3wpe_UV_NEC$x, ymin=pred_lat_growth_2mo_3wpe_UV_NEC$Q2.5, ymax=pred_lat_growth_2mo_3wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_3wpe_PAR_NEC$x, y=pred_lat_growth_2mo_3wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_3wpe_UV_NEC$x, y=pred_lat_growth_2mo_3wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_3wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_3wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(growthival~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 6.15), breaks = c(0, 2, 4, 6), labels = c(0, 200, 400, 600)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_3wpe_NEC <- p_NEC
+plot_lat_growth_2mo_3wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_3wpe_predvals.RData")
+
+pred_lat_growth_2mo_3wpe$diff_data$inv.x <- 10^pred_lat_growth_2mo_3wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_2mo_3wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="f)")
+
+plot_lat_growth_2mo_3wpe_diff.est <- p.comp.diff
+plot_lat_growth_2mo_3wpe_diff.est
+```
+
+
+#### 4 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_4wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_4wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_4wpe_PAR$x, ymin=pred_lat_growth_2mo_4wpe_PAR$Q2.5, ymax=pred_lat_growth_2mo_4wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_4wpe_UV$x, ymin=pred_lat_growth_2mo_4wpe_UV$Q2.5, ymax=pred_lat_growth_2mo_4wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_4wpe_PAR$x, y=pred_lat_growth_2mo_4wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_4wpe_UV$x, y=pred_lat_growth_2mo_4wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_2mo_4wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_2mo_4wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="g) 4 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 11.2), breaks = c(0, 2, 6, 10), labels = c(0, 200, 600, 1000))  
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_4wpe_all <- p.all
+plot_lat_growth_2mo_4wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_4wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_4wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_4wpe_PAR_NEC$x, ymin=pred_lat_growth_2mo_4wpe_PAR_NEC$Q2.5, ymax=pred_lat_growth_2mo_4wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_4wpe_UV_NEC$x, ymin=pred_lat_growth_2mo_4wpe_UV_NEC$Q2.5, ymax=pred_lat_growth_2mo_4wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_4wpe_PAR_NEC$x, y=pred_lat_growth_2mo_4wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_4wpe_UV_NEC$x, y=pred_lat_growth_2mo_4wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_4wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_4wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Relative~growth~("%")),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 11.05), breaks = c(0, 0.25, 0.5, 0.75, 1.0), labels = c(0, 25, 50, 75, 100)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_4wpe_NEC <- p_NEC
+plot_lat_growth_2mo_4wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_4wpe_predvals.RData")
+
+pred_lat_growth_2mo_4wpe$diff_data$inv.x <- 10^pred_lat_growth_2mo_4wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_2mo_4wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="h)")
+
+plot_lat_growth_2mo_4wpe_diff.est <- p.comp.diff
+plot_lat_growth_2mo_4wpe_diff.est
+```
+
+
+#### 6 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_6wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_6wpe_PAR$x, ymin=pred_lat_growth_2mo_6wpe_PAR$Q2.5, ymax=pred_lat_growth_2mo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_growth_2mo_6wpe_UV$x, ymin=pred_lat_growth_2mo_6wpe_UV$Q2.5, ymax=pred_lat_growth_2mo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_6wpe_PAR$x, y=pred_lat_growth_2mo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_growth_2mo_6wpe_UV$x, y=pred_lat_growth_2mo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ geom_point(data = growth_2mo_6wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p.all= p.all+ geom_point(data = growth_2mo_6wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Latent~relative~growth~("%")),
+              subtitle="i) 6 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 27.5), breaks = c(0, 5, 15, 25), labels = c(0, 500, 1500,  2500)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_6wpe_all <- p.all
+plot_lat_growth_2mo_6wpe_all
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_6wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_6wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_6wpe_PAR_NEC$x, ymin=pred_lat_growth_2mo_6wpe_PAR_NEC$Q2.5, ymax=pred_lat_growth_2mo_6wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_growth_2mo_6wpe_UV_NEC$x, ymin=pred_lat_growth_2mo_6wpe_UV_NEC$Q2.5, ymax=pred_lat_growth_2mo_6wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_6wpe_PAR_NEC$x, y=pred_lat_growth_2mo_6wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_growth_2mo_6wpe_UV_NEC$x, y=pred_lat_growth_2mo_6wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ geom_point(data = growth_2mo_6wpe_PAR_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+p_NEC= p_NEC+ geom_point(data = growth_2mo_6wpe_UV_data, aes(x = raw.x, y = growth, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Relative~growth~("%")),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 27.55), breaks = c(0, 25), labels = c(0, 25000)) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_growth_2mo_6wpe_NEC <- p_NEC
+plot_lat_growth_2mo_6wpe_NEC
+```
+
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_growth_6wpe_predvals.RData")
+
+pred_lat_growth_2mo_6wpe$diff_data$inv.x <- 10^pred_lat_growth_2mo_6wpe$diff_data$x
+
+p.comp.diff = ggplot(pred_lat_growth_2mo_6wpe$diff_data) +
+  geom_ribbon(aes(x=inv.x, ymin=diff.Q2.5, ymax=diff.Q97.5, fill = 'grey'), alpha=0.4) +
+  geom_line(aes(x=inv.x, diff.Estimate, color="grey"), size=0.8) +
+  geom_hline(yintercept = 0, color = "steelblue3", lty = 2, size=0.75)
+
+
+p.comp.diff= p.comp.diff + scale_fill_manual( values = c("grey", "steelblue3")) +
+                scale_color_manual(values = c("grey", "steelblue3")) 
+  
+p.comp.diff= p.comp.diff + theme_light() + 
+                theme(legend.position="none") +
+                theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.diff= p.comp.diff + scale_y_continuous(name = "Posterior differences estimate") 
+p.comp.diff= p.comp.diff + scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100)) +
+              labs(x=expression(Treatment~concentration~(μg~TAH~"L"^{-1})),
+                  y=expression(Posterior~difference~estimate),
+                  subtitle="j)")
+
+plot_lat_growth_2mo_6wpe_diff.est <- p.comp.diff
+plot_lat_growth_2mo_6wpe_diff.est
+```
+
+
+
+
+
+### Vertical growth
+#### 2 weeks post+exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_VG_2wpe_data.RData")
+
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+
+p.all= p.all+ stat_dots(data = VG_2mo_2wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = VG_2mo_2wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = VG_2mo_2wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = VG_2mo_2wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Vertical~growth),
+              subtitle="a) 2 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_VG_2mo_2wpe_all <- p.all
+plot_lat_VG_2mo_2wpe_all
+```
+#### 3 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_VG_3wpe_data.RData")
+
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ stat_dots(data = VG_2mo_3wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = VG_2mo_3wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = VG_2mo_3wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = VG_2mo_3wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Vertical~growth),
+              subtitle="b) 3 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_VG_2mo_3wpe_all <- p.all
+plot_lat_VG_2mo_3wpe_all
+```
+
+#### 4 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_VG_4wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_VG_2mo_4wpe_PAR$x, ymin=pred_lat_VG_2mo_4wpe_PAR$Q2.5, ymax=pred_lat_VG_2mo_4wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_VG_2mo_4wpe_UV$x, ymin=pred_lat_VG_2mo_4wpe_UV$Q2.5, ymax=pred_lat_VG_2mo_4wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_VG_2mo_4wpe_PAR$x, y=pred_lat_VG_2mo_4wpe_PAR$Estimate), color = 'grey30', size=0.5)
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_VG_2mo_4wpe_UV$x, y=pred_lat_VG_2mo_4wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = VG_2mo_4wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = VG_2mo_4wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = VG_2mo_4wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = VG_2mo_4wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+p.all = p.all+ labs(x=expression(), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Vertical~growth),
+              subtitle="c) 4 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_VG_2mo_4wpe_all <- p.all
+plot_lat_VG_2mo_4wpe_all
+```
+
+#### 6 weeks post-exposure
+```{r}
+load("2mo/2018.03_AM_HFO_2mo_lat_VG_6wpe_data.RData")
+load("2mo/2018.03_AM_HFO_2mo_lat_VG_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_VG_2mo_6wpe_PAR$x, ymin=pred_lat_VG_2mo_6wpe_PAR$Q2.5, ymax=pred_lat_VG_2mo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_VG_2mo_6wpe_UV$x, ymin=pred_lat_VG_2mo_6wpe_UV$Q2.5, ymax=pred_lat_VG_2mo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_VG_2mo_6wpe_PAR$x, y=pred_lat_VG_2mo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+p.all= p.all+ geom_line(aes(x=10^pred_lat_VG_2mo_6wpe_UV$x, y=pred_lat_VG_2mo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = VG_2mo_6wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = VG_2mo_6wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 1.7, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = VG_2mo_6wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = VG_2mo_6wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Vertical~growth),
+              subtitle="d) 6 weeks post-exposure")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_VG_2mo_6wpe_all <- p.all
+plot_lat_VG_2mo_6wpe_all
+```
+

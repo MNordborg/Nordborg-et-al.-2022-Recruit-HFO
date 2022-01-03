@@ -1,0 +1,439 @@
+---
+title: "2018.03_AM_HFO_2mo_lat_VG_4wpe"
+author: "Mikaela Nordborg"
+date: "01/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+#select usingcmdstanr instead of rtools
+require(cmdstanr)
+set_cmdstan_path("C:/cmdstan")
+options(brms.backend = "cmdstanr")
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+library(ggdist)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+# Background
+
+Vertical growth during post-exposure recovery of 2 month old Acropora millepora corals exposed to the water accommodated fractions (WAF) of heavy fuel oil in the presence or absence of ultraviolet radiation (UV). Assessments performed at 2, 3, 4 and 6 weeks post-exposure (wpe).
+
+Column headings used:
+
+  date                        = date of assessment/imaging
+  endpoint                    = outlines the endpoint assessed for the dataset
+  exp_time                    = exposure time (days)
+  light                       = light treatment corals were exposed under; visible light in the absence (PAR) or presence (UVR) of UV radiation
+  nom.x                       = nominal treatment concentration (% WAF)
+  raw.x                       = time-averaged, measured treatment concentration (ug TAH/L)
+  rep                         = replicate chamber.ID for the treatment combination (1-7)
+  chamber.ID                  = exposure chamber used (1-79)
+  tile.ID                     = tile number (1-249)
+  org.ID                      = identifier for individual corals within a replicate
+  recovery_tray               = tray corals were placed in during post-exposure recovery(1-10). Use to identify the image file analysed for post-exposure endpoints
+  tray_position               = photograph position in tray (1-6 or 1-4). Use to identify the image file analysed for post-exposure endpoints.
+  tile_position               = position of individual glass tiles within the section of tray that each image file is showing. Use to identify the image file analysed for post-exposure endpoints
+  recovery_ROI                = ROi number assigned to each coral still alive at the end of exposure. Use to identify individual corals measured in image files analysed.
+  VG                 = identifies whether vertical growth was evident for the coral (0 = No vertical growth; 1 = vertical growth observed)
+  comments                    = comments relating to individual data points
+  use_in_model                = specifies which data points should be included in statistical analysis
+  reason_for_exclusion        = specifies the reason for exclusion form statistical analysis (f applicable)
+  use_in_plot                 = specifies whether data should be used in results graphics or not
+  reason_for_exclusion_plot   = specifies why data point should not be included in result graphics
+
+
+
+# Import and prepare data for analysis
+```{r}
+#all models  - no x transformation
+juv_lat_VG_data <- readr::read_csv("csv files/2018.03_AM_HFO_2mo_latent_VG.csv") 
+
+#Check the range of concentration (x) values for the data
+unique(juv_lat_VG_data$raw.x)
+```
+
+## Data wrangling/clean-up
+```{r}
+juv_lat_VG_data <- readr::read_csv("csv files/2018.03_AM_HFO_2mo_latent_VG.csv") %>% 
+  data.frame() %>% dplyr::mutate(light=as.factor(as.character(light)),
+                                 exp_time=as.factor(as.character(exp_time)),
+                                 nom.x=as.character(nom.x),
+                                 raw.x=as.numeric(as.character(raw.x)),
+                                 raw.x=ifelse(raw.x==0, 0.1, raw.x), # deal with 0 concentration values
+                                 rep=as.factor(as.numeric(rep)),
+                                 chamber.ID=as.factor(as.numeric(chamber.ID)),
+                                 tile.ID=as.factor(as.character(tile.ID)),
+                                 org.ID=as.factor(as.numeric(org.ID)),
+                                 VG=as.integer(VG),
+                                 log.x=log10(raw.x), # create log values (doesn't really matter if it's log or log10() unless there's a difference in the scaling of the x-data)
+                                 tot=as.integer(1)) #to account for the 5% variability in repeat area measurements
+str(juv_lat_VG_data)
+head(juv_lat_VG_data)
+tail(juv_lat_VG_data)
+```
+
+
+## Filter data
+```{r}
+#filter for exposure time
+VG_2mo_4wpe_data <-juv_lat_VG_data %>% 
+  dplyr::filter(exp_time=="4 weeks post-exposure") 
+
+#filter for whether replicates should be included in model fitting
+VG_2mo_4wpe_data <- VG_2mo_4wpe_data %>% 
+  dplyr::filter(use_in_model=="Yes")
+
+
+
+#filter for light treatment
+VG_2mo_4wpe_PAR_data <- VG_2mo_4wpe_data %>% 
+  dplyr::filter(light=="PAR")
+  
+VG_2mo_4wpe_UV_data <- VG_2mo_4wpe_data %>% 
+  dplyr::filter(light=="UVR")
+
+#check that filtering worked
+View(VG_2mo_4wpe_PAR_data)
+View(VG_2mo_4wpe_UV_data)
+```
+
+
+### Save filtered data as an RData object
+```{r}
+save(VG_2mo_4wpe_PAR_data, VG_2mo_4wpe_UV_data, file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+```
+
+
+
+# PAR/-UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+
+unique(VG_2mo_4wpe_PAR_data$raw.x)
+par(mfrow=c(2,1))
+hist(VG_2mo_4wpe_PAR_data$raw.x)
+hist(VG_2mo_4wpe_PAR_data$VG)
+par(mfrow=c(1,1))
+plot(VG_2mo_4wpe_PAR_data$log.x, VG_2mo_4wpe_PAR_data$VG) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+## Fit a model-averaged NEC-model (MANEC) using the betabinomial distribution
+```{r, eval=FALSE}
+load(file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+
+
+out_lat_VG_2mo_4wpe_PAR_all <- bayesnec::bnec(VG ~ crf(log.x, model = "decline"),
+                                     data = VG_2mo_4wpe_PAR_data, family = bernoulli(link = "identity"))
+
+save(out_lat_VG_2mo_4wpe_PAR_all, file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfit_all.RData")
+beepr::beep("mario")
+```
+
+
+
+## Check model fit
+Check if any candidate models failed the rHat test
+```{r}
+load(file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfit_all.RData")
+rhat(out_lat_VG_2mo_4wpe_PAR_all, rhat_cutoff = 1.03)
+```
+
+
+Check model summary
+```{r}
+out_lat_VG_2mo_4wpe_PAR_all$mod_stats
+summary(out_lat_VG_2mo_4wpe_PAR_all)
+```
+
+
+Check the overall MANEC fit
+```{r}
+plot(out_lat_VG_2mo_4wpe_PAR_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+Check chain mixing, priors and the fit of the individual candidate models
+```{r}
+check_chains(out_lat_VG_2mo_4wpe_PAR_all, filename = "2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfit_chains")
+
+check_priors(out_lat_VG_2mo_4wpe_PAR_all, filename = "2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfit_priors")
+
+pdf("2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfit_fitplots.pdf")
+plot(out_lat_VG_2mo_4wpe_PAR_all, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+  *Any evidence of poor chain mixing or convergence issues?*
+      - model           include/unclear/exclude           Reason for exclusion
+      
+      - nec3param               unclear                   Minor-some evidence of poor chain mixing
+      - ecxwb2                  include                   Minor evidence of poor chain mixing
+      
+ 
+  *Any indications that the prior distributions were influencing the posterior distributions more than the observed data?*
+      - probably for ecx4param (bot, ec50 & top), ecxwb1 (ec50 & top), ecxwb2 (bot), ecxll5 (ec50 & top), ecxll4 (bot, ec50 & top)
+
+  *Should any of the candidate models be excluded based on the fit relative to the raw data?*
+      - unclear
+
+Drop inappropriate models and models with non-convergence or very poor chain mixing (if required)
+```{r}
+out_lat_VG_2mo_4wpe_PAR_mod <- amend(out_lat_VG_2mo_4wpe_PAR_all, drop = c("ecx4param", "ecxwb1", "ecxll5", "ecxll4"))
+
+save(out_lat_VG_2mo_4wpe_PAR_all, out_lat_VG_2mo_4wpe_PAR_mod, file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfit_all.RData")
+```
+
+
+Compare the MANEC containing all OD candidate models to the amended MANEC
+```{r}
+plot(out_lat_VG_2mo_4wpe_PAR_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+plot(out_lat_VG_2mo_4wpe_PAR_mod, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modelled on log(raw.x) use: lxform = exp
+```
+
+
+
+## Select final MANEC to use
+
+Rename model output for selected MANEC
+```{r}
+out_lat_VG_2mo_4wpe_PAR <- out_lat_VG_2mo_4wpe_PAR_mod
+```
+
+
+Extract the NEC-model subset for use in extraction of NEC and comparisons of posterior distributions
+```{r}
+out_lat_VG_2mo_4wpe_PAR_NEC <- pull_out(out_lat_VG_2mo_4wpe_PAR, model = c("nec"))
+```
+
+
+```{r}
+plot(out_lat_VG_2mo_4wpe_PAR_NEC, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+
+Save the output for the selected models
+```{r}
+save(out_lat_VG_2mo_4wpe_PAR, out_lat_VG_2mo_4wpe_PAR_NEC, file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfits_final.RData")
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfits_final.RData")
+```
+
+
+
+## Extract results
+
+Extract NEC, EC10 and EC50 (with 95% credible intervals) from posterior and backtransform if required
+```{r}
+NEC_lat_VG_2mo_4wpe_PAR <- out_lat_VG_2mo_4wpe_PAR_NEC$w_nec
+NEC_lat_VG_2mo_4wpe_PAR <- 10^NEC_lat_VG_2mo_4wpe_PAR #if using log10(raw.x)
+#NEC_lat_VG_2mo_4wpe_PAR <- exp(NEC_lat_VG_2mo_4wpe_PAR) #if using log(raw.x))
+NEC_lat_VG_2mo_4wpe_PAR
+```
+
+```{r}
+EC10_lat_VG_2mo_4wpe_PAR <- ecx(out_lat_VG_2mo_4wpe_PAR, ecx_val = 10, type = "absolute")
+EC10_lat_VG_2mo_4wpe_PAR <- 10^EC10_lat_VG_2mo_4wpe_PAR #if using log10(raw.x)
+#EC10_lat_VG_2mo_4wpe_PAR <- exp(EC10_lat_VG_2mo_4wpe_PAR) #if using log(raw.x))
+EC10_lat_VG_2mo_4wpe_PAR
+```
+
+```{r}
+EC50_lat_VG_2mo_4wpe_PAR <- ecx(out_lat_VG_2mo_4wpe_PAR, ecx_val = 50, type = "absolute")
+EC50_lat_VG_2mo_4wpe_PAR <- 10^EC50_lat_VG_2mo_4wpe_PAR #if using log10(raw.x)
+#EC50_lat_VG_2mo_4wpe_PAR <- exp(EC50_lat_VG_2mo_4wpe_PAR) #if using log(raw.x))
+EC50_lat_VG_2mo_4wpe_PAR
+```
+
+
+# UV/+UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+
+unique(VG_2mo_4wpe_UV_data$raw.x)
+par(mfrow=c(2,1))
+hist(VG_2mo_4wpe_UV_data$raw.x)
+hist(VG_2mo_4wpe_UV_data$VG)
+par(mfrow=c(1,1))
+plot(VG_2mo_4wpe_UV_data$log.x, VG_2mo_4wpe_UV_data$VG) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+## Fit a model-averaged NEC-model (MANEC) using the betabinomial distribution
+```{r, eval=FALSE}
+load(file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+
+out_lat_VG_2mo_4wpe_UV_all <- bayesnec::bnec(VG ~ crf(log.x, model = "decline"),
+                                     data = VG_2mo_4wpe_UV_data, family = bernoulli(link = "identity"))
+
+save(out_lat_VG_2mo_4wpe_UV_all, file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_UV_modfit_all.RData")
+beepr::beep("mario")
+```
+
+
+    - No decline in the frequency of vertical growth observations with increasing treatment concentration so no models could be fitted.
+
+
+
+
+
+
+# Comparison of light treatments
+## Predict response values
+
+Extract complete posteriors for the fitted values using compare_posterior-function
+```{r}
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_PAR_modfits_final.RData")
+#load("2018.03_AM_HFO_2mo_lat_VG_4wpe_UV_modfits_final.RData")
+
+#pred_lat_VG_2mo_4wpe <- compare_posterior(x=list("PAR" = out_lat_VG_2mo_4wpe_PAR, "UVR" = out_lat_VG_2mo_4wpe_UV), comparison = "fitted", precision = 50)
+
+#pred_lat_VG_2mo_4wpe_PAR <- pred_lat_VG_2mo_4wpe$posterior_data %>%  
+  #dplyr::filter(model=="PAR")
+
+#pred_lat_VG_2mo_4wpe_UV <- pred_lat_VG_2mo_4wpe$posterior_data %>% 
+  #dplyr::filter(model=="UVR")
+
+pred_lat_VG_2mo_4wpe_PAR <-out_lat_VG_2mo_4wpe_PAR$w_pred_vals$data
+
+#pred_lat_VG_2mo_4wpe_NEC <- compare_posterior(list("PAR" = out_lat_VG_2mo_4wpe_PAR_NEC, "UVR" = out_lat_VG_2mo_4wpe_UV_NEC), comparison = "fitted", precision = 50)
+
+#pred_lat_VG_2mo_4wpe_PAR_NEC <- pred_lat_VG_2mo_4wpe_NEC$posterior_data %>% 
+  #dplyr::filter(model=="PAR")
+#pred_lat_VG_2mo_4wpe_UV_NEC <- pred_lat_VG_2mo_4wpe_NEC$posterior_data %>% 
+ #dplyr::filter(model=="UVR")
+
+pred_lat_VG_2mo_4wpe_PAR_NEC <-out_lat_VG_2mo_4wpe_PAR_NEC$w_pred_vals$data
+
+save(pred_lat_VG_2mo_4wpe_PAR, pred_lat_VG_2mo_4wpe_PAR_NEC, file = "2018.03_AM_HFO_2mo_lat_VG_4wpe_predvals.RData") # pred_lat_VG_2mo_4wpe, pred_lat_VG_2mo_4wpe_PAR, pred_lat_VG_2mo_4wpe_UV, pred_lat_VG_2mo_4wpe_PAR_NEC, pred_lat_VG_2mo_4wpe_UV_NEC
+
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_predvals.RData")
+str(pred_lat_VG_2mo_4wpe_PAR)
+#str(pred_lat_VG_2mo_4wpe_UV)
+```
+
+
+
+
+# Graphical presentation of results
+## Concentration-response relationship and raw data
+### Complete subset-MANEC plot
+
+
+```{r}
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_VG_2mo_4wpe_PAR$x, ymin=pred_lat_VG_2mo_4wpe_PAR$Q2.5, ymax=pred_lat_VG_2mo_4wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_VG_2mo_4wpe_UV$x, ymin=pred_lat_VG_2mo_4wpe_UV$Q2.5, ymax=pred_lat_VG_2mo_4wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+p.all= p.all+ geom_line(aes(x=10^pred_lat_VG_2mo_4wpe_PAR$x, y=pred_lat_VG_2mo_4wpe_PAR$Estimate), color = 'grey30', size=0.5)
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_VG_2mo_4wpe_UV$x, y=pred_lat_VG_2mo_4wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = VG_2mo_4wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = VG_2mo_4wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = VG_2mo_4wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = VG_2mo_4wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Vertical~growth),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 500), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_VG_2mo_4wpe_all <- p.all
+plot_lat_VG_2mo_4wpe_all
+```
+
+
+### NEC subset-MANEC plot
+
+```{r}
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_data.RData")
+load("2018.03_AM_HFO_2mo_lat_VG_4wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_VG_2mo_4wpe_PAR_NEC$x, ymin=pred_lat_VG_2mo_4wpe_PAR_NEC$Q2.5, ymax=pred_lat_VG_2mo_4wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_VG_2mo_4wpe_UV_NEC$x, ymin=pred_lat_VG_2mo_4wpe_UV_NEC$Q2.5, ymax=pred_lat_VG_2mo_4wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_VG_2mo_4wpe_PAR_NEC$x, y=pred_lat_VG_2mo_4wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+#p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_VG_2mo_4wpe_UV_NEC$x, y=pred_lat_VG_2mo_4wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+
+p_NEC= p_NEC+ stat_dots(data = VG_2mo_4wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+p_NEC= p_NEC+ stat_dots(data = VG_2mo_4wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(VG == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+
+#p_NEC= p_NEC+ geom_point(data = VG_2mo_4wpe_PAR_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p_NEC= p_NEC+ geom_point(data = VG_2mo_4wpe_UV_data, aes(x = raw.x, y = VG, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+p_NEC= p_NEC+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Vertical~growth),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.09, 500), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_VG_2mo_4wpe_NEC <- p_NEC
+plot_lat_VG_2mo_4wpe_NEC
+```
+

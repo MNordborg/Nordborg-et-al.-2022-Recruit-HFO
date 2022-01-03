@@ -1,0 +1,376 @@
+---
+title: "2018.01_AM_HFO_1wo_lat_symb_6wpe"
+author: "Mikaela Nordborg"
+date: "20/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+#select usingcmdstanr instead of rtools
+require(cmdstanr)
+set_cmdstan_path("C:/cmdstan")
+options(brms.backend = "cmdstanr")
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+library(ggdist)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+# Background
+
+Presence of algal symbionts in tissues during post-exposure recovery of 1 week old Acropora millepora corals exposed to the water accommodated fractions (WAF) of heavy fuel oil in the presence or absence of ultraviolet radiation (UV). Assessments performed at 2, 3, 4 and 6 weeks post-exposure (wpe). Samples were no live tissue remained excluded from statistical analysis.
+
+Column headings used:
+
+  date                        = date of assessment/imaging
+  endpoint                    = outlines the endpoint assessed for the dataset
+  exp_time                    = exposure time (days)
+  light                       = light treatment corals were exposed under; visible light in the absence (PAR) or presence (UVR) of UV radiation
+  nom.x                       = nominal treatment concentration (% WAF)
+  raw.x                       = time-averaged, measured treatment concentration (ug TAH/L)
+  rep                         = replicate chamber.ID for the treatment combination (1-7)
+  chamber.ID                  = exposure chamber used (1-79)
+  tile.ID                     = tile number (1-249)
+  org.ID                      = identifier for individual corals within a replicate
+  recovery_tray               = tray corals were placed in during post-exposure recovery(1-10). Use to identify the image file analysed for post-exposure endpoints
+  tray_position               = photograph position in tray (1-6 or 1-4). Use to identify the image file analysed for post-exposure endpoints.
+  area_image_ID               = identifier/file name for image file used to collected measurements
+  ROI                         = ROI number assigned to each coral still alive at each assessment time. Use to identify individual corals measured in image files analysed.
+  symbionts                   = identifies whether algal symbionts were present in coral tissues (0 = No algal symbionts observed; 1 = algal symbionts visible in tissues)
+  comments                    = comments relating to individual data points
+  use_in_model                = specifies which data points should be included in statistical analysis
+  reason_for_exclusion        = specifies the reason for exclusion form statistical analysis (f applicable)
+  use_in_plot                 = specifies whether data should be used in results graphics or not
+  reason_for_exclusion_plot   = specifies why data point should not be included in result graphics
+
+
+
+# Import and prepare data for analysis
+```{r}
+#all models  - no x transformation
+juv_lat_symb_data <- readr::read_csv("csv files/2018.01_AM_HFO_1wo_lat_symbiont.csv") 
+
+#Check the range of concentration (x) values for the data
+unique(juv_lat_symb_data$raw.x)
+```
+
+## Data wrangling/clean-up
+```{r}
+juv_lat_symb_data <- readr::read_csv("csv files/2018.01_AM_HFO_1wo_lat_symbiont.csv") %>% 
+  data.frame() %>% dplyr::mutate(light=as.factor(as.character(light)),
+                                 exp_time=as.factor(as.character(exp_time)),
+                                 nom.x=as.character(nom.x),
+                                 raw.x=as.numeric(as.character(raw.x)),
+                                 raw.x=ifelse(raw.x==0, 0.1, raw.x), # deal with 0 concentration values
+                                 rep=as.factor(as.numeric(rep)),
+                                 chamber.ID=as.factor(as.numeric(chamber.ID)),
+                                 tile.ID=as.factor(as.character(tile.ID)),
+                                 org.ID=as.factor(as.numeric(org.ID)),
+                                 symbionts=as.integer(symbionts),
+                                 log.x=log10(raw.x), # create log values (doesn't really matter if it's log or log10() unless there's a difference in the scaling of the x-data)
+                                 tot=as.integer(1)) #to account for the 5% variability in repeat area measurements
+str(juv_lat_symb_data)
+head(juv_lat_symb_data)
+tail(juv_lat_symb_data)
+```
+
+
+## Filter data
+```{r}
+#filter for exposure time
+symb_1wo_6wpe_data <-juv_lat_symb_data %>% 
+  dplyr::filter(exp_time=="6 weeks post-exposure") 
+
+#filter for whether replicates should be included in model fitting
+symb_1wo_6wpe_data <- symb_1wo_6wpe_data %>% 
+  dplyr::filter(use_in_model=="Yes")
+
+
+
+#filter for light treatment
+symb_1wo_6wpe_PAR_data <- symb_1wo_6wpe_data %>% 
+  dplyr::filter(light=="PAR")
+  
+symb_1wo_6wpe_UV_data <- symb_1wo_6wpe_data %>% 
+  dplyr::filter(light=="UVR")
+
+#check that filtering worked
+View(symb_1wo_6wpe_PAR_data)
+View(symb_1wo_6wpe_UV_data)
+```
+
+
+### Save filtered data as an RData object
+```{r}
+save(symb_1wo_6wpe_PAR_data, symb_1wo_6wpe_UV_data, file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+```
+
+
+
+# PAR/-UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+
+unique(symb_1wo_6wpe_PAR_data$raw.x)
+par(mfrow=c(2,1))
+hist(symb_1wo_6wpe_PAR_data$raw.x)
+hist(symb_1wo_6wpe_PAR_data$symbionts)
+par(mfrow=c(1,1))
+plot(symb_1wo_6wpe_PAR_data$log.x, symb_1wo_6wpe_PAR_data$symbionts) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+
+## Fit a model-averaged NEC-model (MANEC) using the betabinomial distribution
+```{r, eval=FALSE}
+load(file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+
+
+out_lat_symb_1wo_6wpe_PAR_all <- bayesnec::bnec(symbionts ~ crf(log.x, model = "decline"),
+                                     data = symb_1wo_6wpe_PAR_data, family = bernoulli(link = "identity"))
+save(out_lat_symb_1wo_6wpe_PAR_all, file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_PAR_modfit_all.RData")
+
+beepr::beep("mario")
+```
+
+
+
+## Check model fit
+Check if any candidate models failed the rHat test
+```{r}
+load(file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_PAR_modfit_all.RData")
+rhat(out_lat_symb_1wo_6wpe_PAR_all, rhat_cutoff = 1.03)
+```
+
+
+Check model summary
+```{r}
+out_lat_symb_1wo_6wpe_PAR_all$mod_stats
+summary(out_lat_symb_1wo_6wpe_PAR_all)
+```
+
+
+Check the overall MANEC fit
+```{r}
+plot(out_lat_symb_1wo_6wpe_PAR_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+Check chain mixing, priors and the fit of the individual candidate models
+```{r}
+check_chains(out_lat_symb_1wo_6wpe_PAR_all, filename = "2018.01_AM_HFO_1wo_lat_symb_6wpe_PAR_modfit_chains")
+
+check_priors(out_lat_symb_1wo_6wpe_PAR_all, filename = "2018.01_AM_HFO_1wo_lat_symb_6wpe_PAR_modfit_priors")
+
+pdf("2018.01_AM_HFO_1wo_lat_symb_6wpe_PAR_modfit_fitplots.pdf")
+plot(out_lat_symb_1wo_6wpe_PAR_all, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+  *Any evidence of poor chain mixing or convergence issues?*
+      - No
+ 
+  *Any indications that the prior distributions were influencing the posterior distributions more than the observed data?*
+      - Probably for ecxll5 (ec50 & top), 
+
+  *Should any of the candidate models be excluded based on the fit relative to the raw data?*
+      - No concentration-response observed (all surviving recruits had visible algal symbionts)
+
+
+
+# UV/+UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+
+unique(symb_1wo_6wpe_UV_data$raw.x)
+par(mfrow=c(2,1))
+hist(symb_1wo_6wpe_UV_data$raw.x)
+hist(symb_1wo_6wpe_UV_data$symbionts)
+par(mfrow=c(1,1))
+plot(symb_1wo_6wpe_UV_data$log.x, symb_1wo_6wpe_UV_data$symbionts) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+
+## Fit a model-averaged NEC-model (MANEC) using the betabinomial distribution
+```{r, eval=FALSE}
+load(file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+
+out_lat_symb_1wo_6wpe_UV_all <- bayesnec::bnec(symbionts ~ crf(log.x, model = "decline"),
+                                     data = symb_1wo_6wpe_UV_data, family = bernoulli(link = "identity"))
+save(out_lat_symb_1wo_6wpe_UV_all, file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_UV_modfit_all.RData")
+
+beepr::beep("mario")
+```
+
+
+    - No decline in the frequency of vertical growth observations with increasing treatment concentration so no models could be fitted.
+
+
+## Check model fit
+Check if any candidate models failed the rHat test
+```{r}
+load(file = "2018.01_AM_HFO_1wo_lat_symb_6wpe_UV_modfit_all.RData")
+rhat(out_lat_symb_1wo_6wpe_UV_all, rhat_cutoff = 1.03)
+```
+
+
+
+Check model summary
+```{r}
+out_lat_symb_1wo_6wpe_UV_all$mod_stats
+summary(out_lat_symb_1wo_6wpe_UV_all)
+```
+
+
+Check the overall MANEC fit
+```{r}
+plot(out_lat_symb_1wo_6wpe_UV_all, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+```
+
+Check chain mixing, priors and the fit of the individual candidate models
+```{r}
+check_chains(out_lat_symb_1wo_6wpe_UV_all, filename = "2018.01_AM_HFO_1wo_lat_symb_6wpe_UV_modfit_chains")
+
+check_priors(out_lat_symb_1wo_6wpe_UV_all, filename = "2018.01_AM_HFO_1wo_lat_symb_6wpe_UV_modfit_priors")
+
+pdf("2018.01_AM_HFO_1wo_lat_symb_6wpe_UV_modfit_fitplots.pdf")
+plot(out_lat_symb_1wo_6wpe_UV_all, all_models = TRUE, add_ec10 = FALSE, add_nec = TRUE, lxform = inv.log10) #if modeled on log(raw.x) use: lxform = exp
+dev.off()
+```
+
+  *Any evidence of poor chain mixing or convergence issues?*
+      - No
+  
+  *Any indications that the prior distributions were influencing the posterior distributions more than the observed data?*
+      - Probably for ecxll5 (top)
+
+  *Should any of the candidate models be excluded based on the fit relative to the raw data?*
+      - All, no concentration-response observed (all surviving corals had visible algal symbionts)
+      
+
+
+
+
+# Graphical presentation of results
+## Concentration-response relationship and raw data
+### Complete subset-MANEC plot
+
+
+```{r}
+load("2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+#load("2018.01_AM_HFO_1wo_lat_symb_6wpe_predvals.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light() #, "PAR_t0" = "gray75", "UVR_t0" = "gray75" (add in if plotting t0 values)
+
+
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_6wpe_PAR$x, ymin=pred_lat_symb_1wo_6wpe_PAR$Q2.5, ymax=pred_lat_symb_1wo_6wpe_PAR$Q97.5, fill="seagreen"),  alpha=0.3)
+#p.all= p.all+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p.all= p.all+ geom_ribbon(aes(x=10^pred_lat_symb_1wo_6wpe_UV$x, ymin=pred_lat_symb_1wo_6wpe_UV$Q2.5, ymax=pred_lat_symb_1wo_6wpe_UV$Q97.5, fill="steelblue",  alpha=0.3))
+#p.all= p.all+  scale_fill_manual(values="steelblue")
+
+
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_6wpe_PAR$x, y=pred_lat_symb_1wo_6wpe_PAR$Estimate), color = 'grey30', size=0.5)
+#p.all= p.all+ geom_line(aes(x=10^pred_lat_symb_1wo_6wpe_UV$x, y=pred_lat_symb_1wo_6wpe_UV$Estimate), color = 'grey30', size=0.5)
+
+
+p.all= p.all+ stat_dots(data = symb_1wo_6wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+p.all= p.all+ stat_dots(data = symb_1wo_6wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+
+#p.all= p.all+ geom_point(data = symb_1wo_6wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p.all= p.all+ geom_point(data = symb_1wo_6wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+p.all= p.all+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression(Algal~symbionts),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous( limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue")) #, "gray75", "gray75" (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_6wpe_all <- p.all
+plot_lat_symb_1wo_6wpe_all
+```
+
+
+### NEC subset-MANEC plot
+
+```{r}
+load("2018.01_AM_HFO_1wo_lat_symb_6wpe_data.RData")
+#load("2018.01_AM_HFO_1wo_lat_symb_6wpe_predvals.RData")
+
+p_NEC= ggplot()
+p_NEC= p_NEC+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen")) + theme_light()
+
+
+#p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_symb_1wo_6wpe_PAR_NEC$x, ymin=pred_lat_symb_1wo_6wpe_PAR_NEC$Q2.5, ymax=pred_lat_symb_1wo_6wpe_PAR_NEC$Q97.5, fill="seagreen"),  alpha=0.3) #Seagreen HEX code: #2e8b57
+#p_NEC= p_NEC+  scale_fill_manual(values=c("seagreen", "steelblue"))
+#p_NEC= p_NEC+  geom_ribbon(aes(x=10^pred_lat_symb_1wo_6wpe_UV_NEC$x, ymin=pred_lat_symb_1wo_6wpe_UV_NEC$Q2.5, ymax=pred_lat_symb_1wo_6wpe_UV_NEC$Q97.5,fill="steelblue",  alpha=0.3))
+#p_NEC= p_NEC+  scale_fill_manual(values="steelblue")
+
+
+#p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_symb_1wo_6wpe_PAR_NEC$x, y=pred_lat_symb_1wo_6wpe_PAR_NEC$Estimate), color = 'grey30', size=0.5)
+#p_NEC= p_NEC+ geom_line(aes(x=10^pred_lat_symb_1wo_6wpe_UV_NEC$x, y=pred_lat_symb_1wo_6wpe_UV_NEC$Estimate), color = 'grey30', size=0.5)
+
+
+p_NEC= p_NEC+ stat_dots(data = symb_1wo_6wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+p_NEC= p_NEC+ stat_dots(data = symb_1wo_6wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3, side = ifelse(symbionts == 0, "top", "bottom")), scale = 0.6, position=position_jitter(width = .07, height=0))
+
+#p_NEC= p_NEC+ geom_point(data = symb_1wo_6wpe_PAR_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .025, height=0.03))
+#p_NEC= p_NEC+ geom_point(data = symb_1wo_6wpe_UV_data, aes(x = raw.x, y = symbionts, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .025, height=0.03))
+
+p_NEC= p_NEC+ geom_hline(yintercept = 0.5, color = "grey30", lty = 2, size=0.5)
+
+
+p_NEC = p_NEC+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})),
+              y=expression(Algal~symbionts),
+              subtitle="a)")
+p_NEC= p_NEC+ scale_y_continuous(limits = c(-0.03, 1.05), breaks = c(0, 1.0), labels = c("No", "Yes")) 
+p_NEC= p_NEC+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p_NEC= p_NEC+ scale_fill_manual(values = c("seagreen", "steelblue"))
+p_NEC= p_NEC+ theme(legend.position="none")
+# p_NEC = p_NEC  + theme(legend.position = c(0.9, 0.9))
+p_NEC= p_NEC+ scale_x_continuous(limits = c(0.08, 400), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p_NEC= p_NEC+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_lat_symb_1wo_6wpe_NEC <- p_NEC
+plot_lat_symb_1wo_6wpe_NEC
+```
+
+

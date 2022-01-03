@@ -1,0 +1,226 @@
+---
+title: "2018.03_AM_HFO_2mo_CS_9d"
+author: "Mikaela Nordborg"
+date: "24/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #install from CRAN in the first instance, for intermediate updates use devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+# Background
+
+Colour score (CS) for young Acropora millepora corals (2 months post-settlement) exposed to the water accommodated fractions (WAF) of heavy fuel oil in the presence or absence of ultraviolet radiation (UV). CS determined by fitting a linear equation to the 'D'-scale on the Coral Watch Coral Health Chart. CS values are averages across the entire area of live tissue for each coral at each assessment time.
+
+Column headings used:
+
+  date                        = date of assessment/imaging
+  exp_time                    = exposure time (days)
+  light                       = light treatment corals were exposed under; visible light in the absence (PAR) or presence (UVR) of UV radiation
+  nom.x                       = nominal treatment concentration (% WAF)
+  raw.x                       = time-averaged, measured treatment concentration (ug TAH/L)
+  rep                         = replicate chamber.ID for the treatment combination (1-7)
+  chamber.ID                     = exposure chamber.ID used (1-79)
+  tile.ID                     = tile number (1-249)
+  org.ID                      = identifier for individual corals within a replicate
+  area_image_ID               = file identifier for the image file used to obtain live tissue area measurements
+  CS                          = colour score (>0)
+  comments                    = comments relating to individual data points
+  use_in_model                = specifies which data points should be included in statistical analysis
+  reason_for_exclusion        = specifies the reason for exclusion form statistical analysis (f applicable)
+  use_in_plot                 = specifies whether data should be used in results graphics or not
+  reason_for_exclusion_plot   = specifies why data point should not be included in result graphics
+  
+ 
+
+
+# Import and prepare data for analysis
+```{r}
+#all models  - no x transformation
+CS_data <- readr::read_csv("csv files/2018.03_AM_HFO_2mo_14d_CS.csv")
+
+#Check the range of concentration (x) values for the data
+unique(CS_data$raw.x)
+```
+
+## Data wrangling/clean-up
+```{r}
+CS_data <- readr::read_csv("csv files/2018.03_AM_HFO_2mo_14d_CS.csv") %>% 
+  data.frame() %>% dplyr::mutate(light=as.factor(as.character(light)),
+                                 exp_time=as.factor(as.character(exp_time)),
+                                 nom.x=as.character(nom.x),
+                                 raw.x=as.numeric(as.character(raw.x)),
+                                 raw.x=ifelse(raw.x==0, 0.1, raw.x), # deal with 0 concentration values
+                                 chamber.ID=as.factor(as.numeric(chamber.ID)),
+                                 rep=as.factor(as.numeric(rep)),
+                                 tile.ID=as.factor(as.character(tile.ID)),
+                                 org.ID=as.factor(as.numeric(org.ID)),
+                                 CS=as.numeric(CS),
+                                 log.x=log10(raw.x)) # create log values (doesn't really matter if it's log or log10() unless there's a difference in the scaling of the x-data)
+str(CS_data)
+head(CS_data)
+tail(CS_data)
+```
+
+
+## Filter data
+```{r}
+#filter for exposure time
+CS_9d_data <-CS_data %>% 
+  dplyr::filter(exp_time=="9 days") 
+
+#filter for whether replicates should be included in model fitting
+CS_9d_data <- CS_9d_data %>% 
+  dplyr::filter(use_in_model=="Yes")
+  
+#filter for light treatment
+CS_9d_PAR_data <- CS_9d_data %>% 
+  dplyr::filter(light=="PAR")
+  
+CS_9d_UV_data <- CS_9d_data %>% 
+  dplyr::filter(light=="UVR")
+
+#check that filtering worked
+View(CS_9d_PAR_data)
+View(CS_9d_UV_data)
+```
+
+
+### Save filtered data as an RData object
+```{r}
+save(CS_9d_PAR_data, CS_9d_UV_data, file = "2018.03_AM_HFO_2mo_CS_9d_data.RData")
+```
+
+
+
+# PAR/-UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.03_AM_HFO_2mo_CS_9d_data.RData")
+
+unique(CS_9d_PAR_data$raw.x)
+par(mfrow=c(2,1))
+hist(CS_9d_PAR_data$raw.x)
+hist(CS_9d_PAR_data$CS)
+par(mfrow=c(1,1))
+plot(CS_9d_PAR_data$log.x, CS_9d_PAR_data$CS) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+
+## Fit a model-averaged NEC-model (MANEC) using the beta distribution
+```{r, eval=FALSE}
+load(file = "2018.03_AM_HFO_2mo_CS_9d_data.RData")
+
+out_CS_9d_PAR_all <- bayesnec::bnec(CS ~ crf(log.x, model = "decline"),
+                                     data = CS_9d_PAR_data)
+save(out_CS_9d_PAR_all, file = "2018.03_AM_HFO_2mo_CS_9d_PAR_modfit_all.RData")
+beepr::beep("mario")
+```
+
+    -> No candidate models could be fitted for the data as the mean CS value of the low concentrations is lower than the mean value for the higher concentrations.
+
+
+
+
+# UV/+UV data
+
+## Initial data exploration
+
+Check distribution of response variable and range of treatment concentrations used
+```{r}
+load(file = "2018.03_AM_HFO_2mo_CS_9d_data.RData")
+
+unique(CS_9d_UV_data$raw.x)
+par(mfrow=c(2,1))
+hist(CS_9d_UV_data$raw.x)
+hist(CS_9d_UV_data$CS)
+par(mfrow=c(1,1))
+plot(CS_9d_UV_data$log.x, CS_9d_UV_data$CS) #use this to get an initial visual idea of priors to use (if setting priors manually)
+```
+
+
+## Fit a model-averaged NEC-model (MANEC) using the beta distribution
+```{r, eval=FALSE}
+load(file = "2018.03_AM_HFO_2mo_CS_9d_data.RData")
+
+out_CS_9d_UV_all <- bayesnec::bnec(CS ~ crf(log.x, model = "decline"),
+                                     data = CS_9d_UV_data)
+save(out_CS_9d_UV_all, file = "2018.03_AM_HFO_2mo_CS_9d_UV_modfit_all.RData")
+beepr::beep("mario")
+```
+
+    -> No candidate models could be fitted for the data as the mean CS value of the low concentrations is lower than the mean value for the higher concentrations.
+
+
+
+
+# Graphical presentation of results
+## Concentration-response relationship and raw data
+### Complete subset-MANEC plot
+
+
+
+
+```{r}
+load("2018.03_AM_HFO_2mo_CS_9d_data.RData")
+load("2018.03_AM_HFO_2mo_CS_0d_data.RData")
+
+p.all= ggplot()
+p.all= p.all+ scale_color_manual(values = c("UVR" = "steelblue", "PAR" = "seagreen", "PAR_t0" = "gray75", "UVR_t0" = "gray75", "Holding tank" = "orchid3")) + theme_light() # (add in if plotting t0 values)
+
+
+p.all= p.all+ geom_point(data = CS_9d_PAR_data, aes(x = raw.x, y = CS, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2, position=position_jitter(width = .035, height=0.03))
+p.all= p.all+ geom_point(data = CS_9d_UV_data, aes(x = raw.x, y = CS, colour=factor(light), shape = factor(light), alpha = 0.3), size = 2.5, position=position_jitter(width = .035, height=0.03))
+
+#Add in the below if plotting t0 values as comparison
+p.all= p.all+ geom_point(data = CS_0d_PAR_data, aes(x = raw.x, y = CS, colour=factor(light), alpha = 0.3), size = 1.6, position=position_jitter(width = .035, height=0.03), shape = 16)
+p.all= p.all+ geom_point(data = CS_0d_UV_data, aes(x = raw.x, y = CS, colour= factor(light), alpha = 0.3), size = 1.9, position=position_jitter(width = .035, height=0.03), shape = 17)
+
+#Add in the below if plottnig husbandry control/holding tank values as a reference
+p.all= p.all+ geom_point(data = CS_0d_HT_data, aes(x = raw.x, y = CS, colour=factor(light), alpha = 0.3), size = 1.6, position=position_jitter(width = .035, height=0.03), shape = 18)
+
+
+p.all = p.all+ labs(x=expression(Concentration~(μg~TAH~"L"^{-1})), #Concentration~(μg~TAH~"L"^{-1})
+              y=expression("9 day"~coral~colour~score),
+              subtitle="a)")
+p.all= p.all+ scale_y_continuous(limits = c(-0.03, 7)) 
+p.all= p.all+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+p.all= p.all+ scale_fill_manual(values = c("seagreen", "steelblue", "gray75", "gray75")) # (add in if plotting t0 values)
+p.all= p.all+ theme(legend.position="none")
+# p.all = p.all  + theme(legend.position = c(0.9, 0.9))
+p.all= p.all+ scale_x_continuous(limits = c(0.09, 500), trans="log10", breaks = c(0.1, 1, 10, 100), labels = c(0, 1, 10, 100))
+#p.all= p.all+ facet_wrap(~factor, nrow = 1)
+
+
+#Rename & show plot
+plot_CS_9d_all <- p.all
+plot_CS_9d_all
+```
+
+
+

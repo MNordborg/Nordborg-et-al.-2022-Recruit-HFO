@@ -1,0 +1,241 @@
+---
+title: "Ch 2_results&layouts_ECLC50"
+author: "Mikaela Nordborg"
+date: "08/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#For model fitting, evaluation & extraction of results
+library(readr)
+library(tidyr)
+library(dplyr)
+require(tidyverse)
+library(brms)
+library(bayesnec) #install from CRAN in the first instance, for intermediate updates use devtools::install_github("open-AIMS/bayesnec")
+library(beepr)
+
+inv.log10 <- function(x){10^x}
+
+
+#For plotting
+library(ggplot2)
+library(scales)
+library(tidybayes)
+library(ggdist)
+
+#For creating layouts & exports
+library(ggpubr) #devtools::install_github("kassambara/ggpubr")
+```
+
+
+#EC/LC50 comparison plots
+
+## 1 week post-settlement
+
+### End of exposure (7d)
+#### Survival
+```{r}
+load("2018.01_AM_HFO_1wo_surv_7d_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_surv_1wo_7d_EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.1), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 29.21%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_surv_1wo_7d_EC50 <- p.comp.EC50
+comp.plot_surv_1wo_7d_EC50
+```
+
+
+
+## 2 months post-settlement
+### Part-way through exposure (9d)
+#### Survival
+```{r}
+load("2018.03_AM_HFO_2mo_surv_9d_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_surv_2mo_9dEC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.5), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 100%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_surv_2mo_9d_EC50 <- p.comp.EC50
+comp.plot_surv_2mo_9d_EC50
+```
+
+#### Relative growth
+```{r}
+load("2018.03_AM_HFO_2mo_growth_9d_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_growth_2mo_9dEC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.1), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 4.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 9.40%", x = 0.55, y = 3.89, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_growth_2mo_9d_EC50 <- p.comp.EC50
+comp.plot_growth_2mo_9d_EC50
+```
+
+#### Coral colour score
+NA
+
+
+
+### End of exposure (14d)
+#### Survival
+```{r}
+load("2018.03_AM_HFO_2mo_surv_14d_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_surv_2mo_14dEC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.7), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 89.7%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_surv_2mo_14d_EC50 <- p.comp.EC50
+comp.plot_surv_2mo_14d_EC50
+```
+
+#### Relative growth
+```{r}
+load("2018.03_AM_HFO_2mo_growth_14d_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_growth_2mo_14dEC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.1), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 33.20%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_growth_2mo_14d_EC50 <- p.comp.EC50
+comp.plot_growth_2mo_14d_EC50
+```
+
+#### Coral colour score
+NA
+
+#### Maximum quantum yield
+NA
+
+
+
+### Latent effects
+#### Survival 1 week post-exposure
+```{r}
+load("2018.03_AM_HFO_2mo_lat_surv_1wpe_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_lat_surv_2mo_1wpe_EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.5), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 85.46%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_lat_surv_2mo_1wpe_EC50 <- p.comp.EC50
+comp.plot_lat_surv_2mo_1wpe_EC50
+```
+
+#### Growth 1 week post-exposure
+```{r}
+load("2018.03_AM_HFO_2mo_lat_growth_1wpe_posterior_comp_EC50.RData")
+
+p.comp.EC50 = ggplot(comp_lat_growth_2mo_1wpe_EC50$posterior_data, aes(x=value))+geom_density(aes(group=model, color=model, fill=model), alpha=0.4) 
+p.comp.EC50 = p.comp.EC50 + stat_pointinterval(aes(y = 0.00, x = value, group=model),.width = c(.66, .95), size=0.5)+
+  theme_light()
+
+p.comp.EC50 = p.comp.EC50 + scale_fill_manual( values = c("seagreen", "steelblue")) +
+  scale_color_manual(values = c("grey","grey", "steelblue1","steelblue", "grey","grey", "grey","grey"))+theme(legend.position="none")
+p.comp.EC50 = p.comp.EC50 + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), panel.border = element_blank(), axis.line = element_line(colour = "grey80"))
+
+p.comp.EC50 = p.comp.EC50 + scale_y_continuous(name ="Posterior probability density") 
+p.comp.EC50 = p.comp.EC50 + scale_x_continuous(limits = c(-1.02, 2.1), breaks = c(-1, 0, 1, 2), labels = c(0, 1, 10, 100)) #update breaks+labels to match the scale given by the automatic compare_posterior output
+p.comp.EC50 = p.comp.EC50 + labs(x=expression(), #EC50~(μg~"L"^{-1})
+               subtitle="b)")
+
+p.comp.EC50= p.comp.EC50+ annotate("text", label = expression(Probability~of~EC[50]~difference), x = 0.55, y = 9.3, size = 2.8, colour = "grey20") #0.8 of the max y-axis limit
+p.comp.EC50= p.comp.EC50+ annotate("text", label = "UVR < PAR = 47.20%%", x = 0.55, y = 7.86, size = 2.4, colour = "grey20") #0.906 of the first annotation
+
+
+#Rename & show plot
+comp.plot_lat_growth_2mo_1wpe_EC50 <- p.comp.EC50
+comp.plot_lat_growth_2mo_1wpe_EC50
+```
+
+#### Vertical growth 2 weeks post-exposure
+
