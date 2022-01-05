@@ -1,0 +1,74 @@
+
+# Load required packages
+```{r}
+require(ssdtools)
+library(ggplot2)
+require(tidyverse)
+```
+
+# Load the McGrath et al.(2018) chronic CTLBB database (36spp) and perform initial data wrangling
+```{r}
+pch.vec <- c(17, 2, 15, 1)
+
+data <- read.csv("McGrath2018_chronic_CTLBBs.csv") %>%
+  data.frame() %>%
+  mutate(log.Conc=log.CL, 
+         log.Conc.lw=log.Conc-as.numeric(SE.log.Cl),
+         log.Conc.up=log.Conc+as.numeric(SE.log.Cl),         
+         Conc=10^log.Conc,
+         Conc.lw=10^log.Conc.lw,
+         Conc.up=10^log.Conc.up,
+         #Species=if_else(Classification=="Fish", "Fish","other"),
+         #Species=if_else(Classification=="Microalgae" | Classification=="Aquatic plant" | Classification=="Phytoplankton", "Algae", #Species),
+         #Species=if_else(str_detect(ï..Species, "Daphnia"), "Daphnids", Species),
+         Species=as.factor(Species)) %>%
+  arrange(Conc) %>%
+  mutate(frac=ppoints(Conc))
+
+  data$pch.vals <- pch.vec[as.numeric(factor(data$Species))]
+
+head(data)
+```
+
+
+# Fit distributions
+```{r}
+dist <- ssd_fit_dists(data, left = 'Conc', dists = c('lnorm'))
+dist
+```
+
+
+
+# Derive percentile sensitivity values for back-calculated CTLBB values
+```{r}
+MK.pa <- data.frame(do.call("rbind", list(
+  "1wo - Surv_7d" = c(2.2, 1.8, 3.1),
+  "1wo - Surv_8dpe" = c(2.4, 2.0, 3.5),
+  "1wo - Surv_6wpe" = c(3.1, 2.1, 4.1),
+  "1wo - Growth_8dpe" = c(1.8, 1.5, 3.0),
+  "1wo - Growth_6wpe" = c(3.1, 1.6, 4.7),
+  "1wo - Symb_8dpe" = c(2.3, 1.7, 7.7),
+  "2mo - Surv_9d" = c(13.6, 13.6, 13.6),
+  "2mo - Surv_14d" = c(8.1, 6.4, 10.0),
+  "2mo - Surv_1wpe" = c(8.6, 6.5, 12.9), 
+  "2mo - Surv_6wpe" = c(9.4, 6.4, 13.0),
+  "2mo - Growth_9d" = c(0.4, 0.1, 1.1),
+  "2mo - Growth_14d" = c(0.4, 0.2, 1.0),
+  "2mo - Growth_1wpe" = c(0.8, 0.2, 3.0),
+  "2mo - Growth_4wpe" = c(5.9, 0.8, 5.9)
+  )))
+colnames(MK.pa) <- c("Conc", "Conc.lw", "Conc.up")
+MK.pa$Study <- row.names(MK.pa)
+MK.pa <- MK.pa %>%
+  mutate(P=signif(plnorm(q=Conc, meanlog=dist$lnorm$estimate["meanlog"], sdlog=dist$lnorm$estimate["sdlog"]) * 100, 2),
+         P.lw=signif(plnorm(q=Conc.lw, meanlog=dist$lnorm$estimate["meanlog"], sdlog=dist$lnorm$estimate["sdlog"]) * 100, 2),
+         P.up=signif(plnorm(q=Conc.up, meanlog=dist$lnorm$estimate["meanlog"], sdlog=dist$lnorm$estimate["sdlog"]) * 100, 2))
+```
+
+
+# Export derived percentile values to .csv file
+```{r}
+write.csv(MK.pa, file="Ch2_Estimated_percent_values_chronic.csv")
+```
+
+
